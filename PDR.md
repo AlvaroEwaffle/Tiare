@@ -2,9 +2,16 @@
 
 ## 🎯 Objetivo
 
-Construir un sistema de gestión de agenda y cobranza para psicólogos/psiquiatras, con integración a Google Calendar y un agente de WhatsApp (Tiare) como interfaz principal de comunicación con pacientes. El doctor tendrá una interfaz básica para configurar agenda, pacientes y procesos de cobranza. **Todo el orquestamiento se implementará en el Backend** (sin n8n) usando colas y jobs.
+Construir un sistema de gestión de agenda y cobranza para psicólogos/psiquiatras, con integración a Google Calendar y un agente de WhatsApp (Tiare) como interfaz principal de comunicación con pacientes. El doctor tendrá una interfaz básica para configurar agenda, pacientes y procesos de cobranza. 
 
----
+Trabajremos aqui la web app.
+La app, sera una app tipo backoffice. 
+Para que el doctor  pueda crear usuarios, setear el agente, revisar el estado de la agenda y de los cobros.
+Ademas disponibilizaremos endpoints para gestionar el calendario de los doctores y manejar el estado de los cobros. Ya que nuestro agente los utilizara.
+
+La interacción con whastsapp la hare por fuera en n8n. Debemos dispoonibilizar los endpoint para que el agente pueda realizar las acciones mencionadas.
+
+Encuentra el detalle a continuacion:
 
 ## 👥 Usuarios Principales
 
@@ -14,10 +21,11 @@ Construir un sistema de gestión de agenda y cobranza para psicólogos/psiquiatr
    * Administra pacientes y sus datos básicos.
    * Define políticas de consulta (formato, cancelación, precios).
    * Configura y revisa estados de cobranza.
+   * Tambien puede interactuar via whatsapp con Tiare.
 
 2. **Paciente**
 
-   * Interactúa vía WhatsApp con Tiare.
+   * Interactúa solo vía WhatsApp con Tiare.
    * Agenda, reprograma o cancela citas.
    * Recibe recordatorios de consultas.
    * Recibe boletas y recordatorios de pago.
@@ -28,7 +36,7 @@ Construir un sistema de gestión de agenda y cobranza para psicólogos/psiquiatr
 
 1. **Registro y Onboarding**
 
-   * Se registra en la plataforma (correo y contraseña).
+   * Se registra en la plataforma (Nombre, Correo, Especialidad y Contraseña).
    * Conecta su cuenta de Google Calendar.
    * Define sus horarios disponibles, duración de consultas y tipos de atención (presencial, remota, domicilio).
    * Configura políticas de cancelación y frecuencia de cobranza (diaria, semanal o mensual).
@@ -98,7 +106,6 @@ Construir un sistema de gestión de agenda y cobranza para psicólogos/psiquiatr
 
 * Backend (Node.js con Express o NestJS).
 * MongoDB (Mongoose ODM).
-* Redis + BullMQ para colas.
 * React + Tailwind para Backoffice.
 * WhatsApp Cloud API para mensajería.
 * Google Calendar API para agenda.
@@ -107,11 +114,11 @@ Construir un sistema de gestión de agenda y cobranza para psicólogos/psiquiatr
 
 ## 🛠️ Endpoints a Implementar
 
-*(Se mantienen los listados previos, ver secciones de autenticación, pacientes, citas, cobranza, boletas y WhatsApp.)*
+Los necesarios para dichas funcionalidades, en la mejor estructura posible. Genera una propuesta en el plan.md
 
 ---
 
-## 🔁 Workers y Jobs
+## 🔁 Workers y Jobs en Backend
 
 * Reminder pre-appointment (24h/2h antes).
 * Reminder post-appointment (pago/encuesta).
@@ -123,4 +130,10 @@ Construir un sistema de gestión de agenda y cobranza para psicólogos/psiquiatr
 
 ## ✅ Instrucciones para Cursor
 
-(Se mantienen los scaffolds de backend, modelos, WhatsAppService, React backoffice y jobs como definidos en la versión anterior del documento.)
+Haz un analisis del codigo existente.
+Genera un plan de migracion en plan.md.
+Debe considerar.
+Las funcionalidades y arquitectura objetivos.
+La estrategia para cambiar de lo actual a la nueva app.
+Debes reutilizar componentes mientras sea posible.
+Crea un .env ejemplo
