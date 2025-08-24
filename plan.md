@@ -103,6 +103,26 @@ Transform the existing e-learning course generator (Ewaffle) into Tiare, a compr
    - Performance optimization
    - Security validation
 
+### **Phase 5: UI/UX Refinement & Calendar Integration (Week 9-10)** 🆕
+1. **UI Minimalista y Limpieza** 🆕
+   - Simplificar interfaz eliminando elementos innecesarios
+   - Quitar campos mock o no utilizados actualmente
+   - Implementar diseño más limpio y enfocado
+   - Optimizar flujos de usuario para mayor eficiencia
+
+2. **Pulir Requests a Endpoints** 🆕
+   - Mejorar validación de formularios
+   - Implementar manejo de errores más robusto
+   - Optimizar payloads de requests
+   - Agregar feedback visual para operaciones exitosas/fallidas
+
+3. **Integración Completa con Calendario** 🆕
+   - Sincronización bidireccional con Google Calendar
+   - Vista de calendario integrada en el dashboard
+   - Creación/edición de citas directamente en calendario
+   - Notificaciones automáticas de cambios en calendario
+   - Gestión de disponibilidad y conflictos de horarios
+
 ## 🏗️ **New Architecture Components**
 
 ### **Data Models**
@@ -216,6 +236,11 @@ src/
 │   │   ├── PatientList.tsx
 │   │   ├── PatientForm.tsx
 │   │   └── PatientCard.tsx
+│   ├── calendar/
+│   │   ├── GoogleCalendar.tsx
+│   │   ├── CalendarView.tsx
+│   │   ├── AvailabilityPicker.tsx
+│   │   └── ConflictResolver.tsx
 │   └── billing/
 │       ├── InvoiceList.tsx
 │       ├── PaymentStatus.tsx
@@ -285,14 +310,79 @@ src/
 - Webhook security for WhatsApp
 - API key management
 
+## 📅 **Calendar Integration Architecture** 🆕
+
+### **Google Calendar Sync Components**
+```typescript
+interface CalendarIntegration {
+  // Calendar configuration
+  googleCalendarId: string;
+  syncEnabled: boolean;
+  lastSyncTime: Date;
+  
+  // Availability management
+  workingHours: WorkingHours;
+  blockedSlots: BlockedSlot[];
+  recurringAvailability: RecurringAvailability[];
+  
+  // Sync settings
+  syncDirection: 'bidirectional' | 'tiare_to_gcal' | 'gcal_to_tiare';
+  conflictResolution: 'tiare_wins' | 'gcal_wins' | 'manual';
+  autoSyncInterval: number; // minutes
+}
+
+interface WorkingHours {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
+interface DaySchedule {
+  available: boolean;
+  startTime?: string; // HH:MM format
+  endTime?: string;   // HH:MM format
+  breakSlots?: BreakSlot[];
+}
+```
+
+### **Calendar Sync Workflow**
+1. **Initial Setup**
+   - OAuth 2.0 authentication with Google
+   - Calendar selection and permissions
+   - Working hours configuration
+   - Conflict resolution preferences
+
+2. **Bidirectional Sync**
+   - Tiare → Google Calendar: New appointments, updates, cancellations
+   - Google Calendar → Tiare: External events, manual changes, conflicts
+   - Real-time webhook notifications for immediate sync
+
+3. **Conflict Resolution**
+   - Automatic conflict detection
+   - User notification of conflicts
+   - Manual resolution interface
+   - Audit trail of all changes
+
+### **Calendar UI Components**
+- **CalendarView**: Vista principal del calendario con citas
+- **AvailabilityPicker**: Selector de horarios disponibles
+- **ConflictResolver**: Interfaz para resolver conflictos
+- **WorkingHoursEditor**: Editor de horarios de trabajo
+- **SyncStatus**: Indicador de estado de sincronización
+
 ## 📅 **Timeline & Milestones**
 
 | Week | Phase | Deliverables |
 |------|-------|--------------|
 | 1-2  | Foundation | Database schema, Auth system, Environment setup |
 | 3-4  | Backend | Core services, API endpoints, Database models |
-| 5-6  | Frontend | UI components, Dashboard, Forms |
+| 3-4  | Frontend | UI components, Dashboard, Forms |
 | 7-8  | Integration | API testing, Workers, QA, Deployment |
+| 9-10 | UI/UX & Calendar | UI refinement, Calendar integration, Endpoint optimization |
 
 ## 🚨 **Risk Mitigation**
 
@@ -313,6 +403,29 @@ src/
 3. **Security**: Pass security audit and compliance checks
 4. **User Experience**: Intuitive interface with minimal training required
 5. **Integration**: Seamless Google Calendar and WhatsApp connectivity
+6. **UI/UX Quality**: Clean, minimalist interface with no unused elements
+7. **API Efficiency**: Optimized requests with proper error handling and validation
+8. **Calendar Sync**: Reliable bidirectional sync with conflict resolution
+
+## 🎨 **UI/UX Refinement Goals** 🆕
+
+### **Interface Simplification**
+- **Eliminar elementos mock**: Quitar todos los campos y datos de ejemplo
+- **Simplificar formularios**: Reducir campos innecesarios, mantener solo lo esencial
+- **Optimizar navegación**: Flujos más directos y menos clics
+- **Diseño responsive**: Asegurar funcionamiento perfecto en móviles y tablets
+
+### **Endpoint Optimization**
+- **Validación robusta**: Implementar validación tanto en frontend como backend
+- **Manejo de errores**: Mensajes de error claros y útiles para el usuario
+- **Feedback visual**: Indicadores de carga, éxito y error en todas las operaciones
+- **Optimización de payloads**: Reducir tamaño de requests y responses
+
+### **Calendar Integration Quality**
+- **Sincronización confiable**: 99.9% de éxito en sincronización bidireccional
+- **Resolución de conflictos**: Interfaz intuitiva para manejar conflictos
+- **Notificaciones en tiempo real**: Alertas inmediatas de cambios en calendario
+- **Gestión de disponibilidad**: Herramientas fáciles para configurar horarios
 
 ## 🔄 **Post-Migration Tasks**
 
