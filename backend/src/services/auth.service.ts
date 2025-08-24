@@ -42,11 +42,11 @@ export class AuthService {
    * Generate JWT tokens for a user
    */
   static generateTokens(payload: JWTPayload): AuthTokens {
-    const accessToken = jwt.sign(payload, this.JWT_SECRET, {
+    const accessToken = (jwt as any).sign(payload, this.JWT_SECRET, {
       expiresIn: this.ACCESS_TOKEN_EXPIRES_IN
     });
 
-    const refreshToken = jwt.sign(payload, this.JWT_REFRESH_SECRET, {
+    const refreshToken = (jwt as any).sign(payload, this.JWT_REFRESH_SECRET, {
       expiresIn: this.REFRESH_TOKEN_EXPIRES_IN
     });
 
@@ -72,7 +72,7 @@ export class AuthService {
   static refreshAccessToken(refreshToken: string): string {
     try {
       const payload = this.verifyToken(refreshToken, true);
-      return jwt.sign(payload, this.JWT_SECRET, {
+      return (jwt as any).sign(payload, this.JWT_SECRET, {
         expiresIn: this.ACCESS_TOKEN_EXPIRES_IN
       });
     } catch (error) {

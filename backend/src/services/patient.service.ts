@@ -402,7 +402,6 @@ export class PatientService {
 
       // Add note to medical history
       patient.medicalHistory.push({
-        id: uuidv4(),
         ...noteData
       });
 

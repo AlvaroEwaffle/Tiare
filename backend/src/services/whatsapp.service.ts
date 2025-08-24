@@ -233,8 +233,8 @@ export class WhatsAppService {
               { type: 'text', text: appointmentDetails.date },
               { type: 'text', text: appointmentDetails.time },
               { type: 'text', text: appointmentDetails.type },
-              ...(appointmentDetails.location && [{ type: 'text', text: appointmentDetails.location }]),
-              ...(appointmentDetails.notes && [{ type: 'text', text: appointmentDetails.notes }])
+              ...(appointmentDetails.location ? [{ type: 'text' as const, text: appointmentDetails.location }] : []),
+              ...(appointmentDetails.notes ? [{ type: 'text' as const, text: appointmentDetails.notes }] : [])
             ]
           }
         ]

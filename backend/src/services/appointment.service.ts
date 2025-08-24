@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Appointment, Patient, Doctor, EventLog } from '../models';
-import { GoogleCalendarService } from './googleCalendar.service';
+import { GoogleCalendarService, GoogleCalendarEvent } from './googleCalendar.service';
 import { WhatsAppService } from './whatsapp.service';
 
 export interface CreateAppointmentData {
@@ -94,7 +94,7 @@ export class AppointmentService {
       // Create Google Calendar event if doctor has calendar connected
       if (doctor.googleRefreshToken && doctor.googleCalendarId) {
         try {
-          const event = {
+          const event: GoogleCalendarEvent = {
             summary: `Consulta con ${patient.name}`,
             description: `Tipo: ${appointmentData.type}\nNotas: ${appointmentData.notes || 'Sin notas'}`,
             start: {
@@ -108,8 +108,8 @@ export class AppointmentService {
             reminders: {
               useDefault: false,
               overrides: [
-                { method: 'popup', minutes: 24 * 60 }, // 24 hours before
-                { method: 'popup', minutes: 2 * 60 }   // 2 hours before
+                { method: 'popup' as const, minutes: 24 * 60 }, // 24 hours before
+                { method: 'popup' as const, minutes: 2 * 60 }   // 2 hours before
               ]
             }
           };
@@ -199,7 +199,7 @@ export class AppointmentService {
         duration: appointment.duration,
         type: appointment.type,
         status: appointment.status,
-        notes: appointment.notes,
+        notes: appointment.consultationDetails?.notes,
         consultationDetails: appointment.consultationDetails,
         googleEventId: appointment.googleEventId,
         reminders: appointment.reminders,
@@ -339,12 +339,18 @@ export class AppointmentService {
       if (updateData.duration) appointment.duration = updateData.duration;
       if (updateData.type) appointment.type = updateData.type;
       if (updateData.status) appointment.status = updateData.status;
-      if (updateData.notes !== undefined) appointment.notes = updateData.notes;
-
       // Update consultation details
       if (updateData.consultationDetails) {
         if (!appointment.consultationDetails) {
-          appointment.consultationDetails = {};
+          appointment.consultationDetails = {
+            type: appointment.type,
+            duration: appointment.duration,
+            price: 0, // Default price, should be updated
+            notes: undefined,
+            diagnosis: undefined,
+            prescription: undefined,
+            nextAppointment: undefined
+          };
         }
         Object.assign(appointment.consultationDetails, updateData.consultationDetails);
       }
@@ -358,7 +364,7 @@ export class AppointmentService {
           if (doctor?.googleRefreshToken) {
             const event = {
               summary: `Consulta con ${(await Patient.findOne({ id: appointment.patientId }))?.name}`,
-              description: `Tipo: ${appointment.type}\nNotas: ${appointment.notes || 'Sin notas'}`,
+              description: `Tipo: ${appointment.type}\nNotas: ${appointment.consultationDetails?.notes || 'Sin notas'}`,
               start: {
                 dateTime: appointment.dateTime.toISOString(),
                 timeZone: 'America/Santiago'
@@ -429,6 +435,10 @@ export class AppointmentService {
           const penaltyPercentage = doctor.practiceSettings.cancellationPolicy.penaltyPercentage;
           appointment.cancellationPenalty = penaltyPercentage;
         }
+      }
+
+      if (!doctor) {
+        throw new Error('Doctor not found');
       }
 
       appointment.status = 'cancelled';
@@ -538,7 +548,7 @@ export class AppointmentService {
       endOfDay.setHours(23, 59, 59, 999);
 
       // Get working hours for the day
-      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'lowercase' });
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       const workingHours = doctor.practiceSettings.workingHours[dayOfWeek];
 
       if (!workingHours?.available) {
