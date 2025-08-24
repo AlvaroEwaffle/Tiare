@@ -10,6 +10,7 @@
 - **Patient Management**: Create new patients with WhatsApp integration
 - **Dashboard**: Professional dashboard with doctor information display
 - **WhatsApp Integration**: Automatic patient communication setup
+- **Search & Discovery**: Phone number search for doctors and patients
 - **MongoDB Database**: Robust data persistence
 - **RESTful API**: Clean, documented endpoints
 - **Modern Frontend**: React-based UI with Tailwind CSS
@@ -133,6 +134,7 @@ POST /api/doctors/login
 GET /api/doctors/:id
 ```
 Requires authentication token. Returns complete doctor profile.
+        "accessToken": "",
 
 
 #### **Get Doctor Info (Public)**
@@ -195,7 +197,104 @@ POST /api/patients/create
 }
 ```
 
+### **Search & Discovery**
+
+#### **Search User by Phone Number (Protected)**
+```http
+GET /api/search/phone/:phoneNumber
+```
+Requires JWT authentication. Searches both doctors and patients by exact phone number match.
+
+**Headers:**
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Response for Doctor:**
+```json
+{
+  "message": "User found successfully",
+  "result": {
+    "type": "doctor",
+    "user": {
+      "id": "1a603974-847e-4b35-be60-4bbb2715e870",
+      "name": "Dr. Álvaro Villena",
+      "phone": "+56920115198",
+      "email": "alvaro@tiare.com",
+      "specialization": "Psicología Clínica",
+      "licenseNumber": "PSI-2024-001",
+      "address": "Optional address",
+      "isActive": true,
+      "createdAt": "2025-08-23T21:13:07.095Z",
+      "updatedAt": "2025-08-23T21:13:07.097Z"
+    }
+  }
+}
+```
+
+**Response for Patient:**
+```json
+{
+  "message": "User found successfully",
+  "result": {
+    "type": "patient",
+    "user": {
+      "id": "patient-id",
+      "name": "Juan Pérez",
+      "phone": "+34612345678",
+      "email": "juan@example.com",
+      "doctorId": "doctor-id",
+      "dateOfBirth": "1990-01-01",
+      "gender": "male",
+      "address": "Patient address",
+      "emergencyContact": {...},
+      "medicalHistory": [...],
+      "communicationPreferences": {...},
+      "isActive": true,
+      "createdAt": "2025-08-23T20:39:45.715Z",
+      "updatedAt": "2025-08-23T20:39:45.715Z"
+    }
+  }
+}
+```
+
+#### **Search Users by Partial Phone (Protected)**
+```http
+GET /api/search/phone-partial/:partialPhone?limit=10
+```
+Requires JWT authentication. Searches for users with phone numbers containing the partial match.
+
+**Headers:**
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Response:**
+```json
+{
+  "message": "Found 2 users",
+  "results": [
+    {
+      "type": "doctor",
+      "user": { /* doctor details */ }
+    },
+    {
+      "type": "patient", 
+      "user": { /* patient details */ }
+    }
+  ],
+  "searchTerm": "569",
+  "limit": 5
+}
+```
+
 ## 🚀 Getting Started
+
+### **Production Environment**
+The Tiare application is deployed and running on Railway:
+- **Production URL:** https://tiare-production.up.railway.app
+- **Health Check:** https://tiare-production.up.railway.app/api/health
+- **Status:** ✅ **Production Ready**
 
 ### **Prerequisites**
 - Node.js 18+ 
@@ -280,7 +379,8 @@ https://wa.me/34612345678?text=Hola%20Juan%20P%C3%A9rez!%20%F0%9F%91%8B%20Soy%20
 2. **View professional dashboard** with contact information
 3. **Create new patients** with automatic WhatsApp setup
 4. **Copy contact information** for easy sharing
-5. **Access patient management** tools
+5. **Search for patients and other doctors** by phone number
+6. **Access patient management** tools
 
 ### **For Patients:**
 1. **Receive personalized WhatsApp messages** from the virtual assistant
@@ -340,6 +440,42 @@ The system includes these MongoDB models:
 - **Error handling** without exposing sensitive information
 - **CORS configuration** for frontend integration
 
+### **Getting JWT Tokens for Protected Endpoints**
+
+To access protected endpoints like search, you need to:
+
+1. **Register a doctor** (if not already registered):
+```bash
+curl -X POST https://tiare-production.up.railway.app/api/doctors/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Dr. Álvaro Villena",
+    "email": "alvaro@tiare.com",
+    "password": "password123",
+    "specialization": "Psicología Clínica",
+    "licenseNumber": "PSI-2024-001",
+    "phone": "+56920115198"
+  }'
+```
+
+2. **Login to get tokens**:
+```bash
+curl -X POST https://tiare-production.up.railway.app/api/doctors/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "alvaro@tiare.com",
+    "password": "password123"
+  }'
+```
+
+3. **Use the access token** in protected requests:
+```bash
+curl -X GET "https://tiare-production.up.railway.app/api/search/phone/+56920115198" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE"
+```
+
+**Note:** Access tokens expire in 15 minutes. Use refresh tokens or re-login to get new ones.
+
 ## 📊 API Status
 
 | Endpoint | Status | Authentication | Description |
@@ -351,6 +487,8 @@ The system includes these MongoDB models:
 | `GET /api/doctors/info/:id` | ✅ Working | None | Public doctor info |
 | `PUT /api/doctors/:id` | ✅ Working | Required | Update doctor profile |
 | `POST /api/patients/create` | ✅ Working | None | Create new patient |
+| `GET /api/search/phone/:phoneNumber` | ✅ Working | Required | Search by exact phone |
+| `GET /api/search/phone-partial/:partialPhone` | ✅ Working | Required | Search by partial phone |
 
 ## 🚧 Known Limitations
 
