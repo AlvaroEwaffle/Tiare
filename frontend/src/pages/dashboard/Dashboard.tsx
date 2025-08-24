@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, DollarSign, Clock, TrendingUp, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/hooks/use-toast";
-import { mockUserData } from "@/utils/mockData";
 
 interface DashboardStats {
   totalPatients: number;
@@ -70,11 +69,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      const accessToken = localStorage.getItem('accessToken');
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-
-      // Use mock data if no real user data is available
-      const userId = userData.id || mockUserData.id;
       
       if (!backendUrl) {
         throw new Error('Missing backend URL configuration');
@@ -82,84 +77,48 @@ const Dashboard = () => {
 
       // Fetch doctor info (public endpoint, no auth required)
       try {
+        const userId = userData.id || '6be302ce-9eb0-4f04-8490-4bb7a6b2063e'; // Fallback ID
         const doctorResponse = await fetch(`${backendUrl}/api/doctors/info/${userId}`);
         if (doctorResponse.ok) {
           const doctorData = await doctorResponse.json();
           setDoctorInfo(doctorData.doctor);
         } else {
-          console.log('Using mock doctor data');
-          setDoctorInfo(mockUserData);
+          console.log('Doctor info not found, using fallback data');
+          setDoctorInfo({
+            id: userId,
+            name: "Dr. Usuario",
+            phone: "+56900000000",
+            specialization: "Especialidad",
+            licenseNumber: "LIC-000"
+          });
         }
       } catch (error) {
-        console.error('Error fetching doctor info, using mock data:', error);
-        setDoctorInfo(mockUserData);
+        console.error('Error fetching doctor info:', error);
+        setDoctorInfo({
+          id: 'fallback',
+          name: "Dr. Usuario",
+          phone: "+56900000000",
+          specialization: "Especialidad",
+          licenseNumber: "LIC-000"
+        });
       }
 
-      // For now, we'll use mock data since the other endpoints might not be fully implemented
-      // In a real implementation, you'd fetch from the actual API endpoints
-
-      // Process responses and update state
-      // This is a simplified version - in real implementation you'd process the actual API responses
+      // TODO: Implement real API calls for stats, appointments, and billing
+      // For now, we'll show empty/placeholder data
       setStats({
-        totalPatients: 45,
-        activePatients: 42,
-        newPatientsThisMonth: 8,
-        totalAppointments: 156,
-        pendingAppointments: 12,
-        completedAppointments: 144,
-        totalBilling: 8500000,
-        pendingBilling: 1200000,
-        paidBilling: 7300000
+        totalPatients: 0,
+        activePatients: 0,
+        newPatientsThisMonth: 0,
+        totalAppointments: 0,
+        pendingAppointments: 0,
+        completedAppointments: 0,
+        totalBilling: 0,
+        pendingBilling: 0,
+        paidBilling: 0
       });
 
-      // Set mock data for recent appointments and billing
-      setRecentAppointments([
-        {
-          id: '1',
-          patientName: 'María González',
-          dateTime: '2024-01-15T10:00:00',
-          type: 'Presencial',
-          status: 'confirmed'
-        },
-        {
-          id: '2',
-          patientName: 'Carlos Rodríguez',
-          dateTime: '2024-01-15T11:00:00',
-          type: 'Remota',
-          status: 'scheduled'
-        },
-        {
-          id: '3',
-          patientName: 'Ana Silva',
-          dateTime: '2024-01-15T14:00:00',
-          type: 'Presencial',
-          status: 'completed'
-        }
-      ]);
-
-      setRecentBilling([
-        {
-          id: '1',
-          patientName: 'María González',
-          amount: 50000,
-          status: 'pending',
-          dueDate: '2024-01-20'
-        },
-        {
-          id: '2',
-          patientName: 'Carlos Rodríguez',
-          amount: 40000,
-          status: 'paid',
-          dueDate: '2024-01-18'
-        },
-        {
-          id: '3',
-          patientName: 'Ana Silva',
-          amount: 50000,
-          status: 'overdue',
-          dueDate: '2024-01-15'
-        }
-      ]);
+      setRecentAppointments([]);
+      setRecentBilling([]);
 
       setLoading(false);
     } catch (error) {
@@ -249,24 +208,13 @@ const Dashboard = () => {
               )}
             </div>
             <div className="flex space-x-3">
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => navigate('/appointments')}>
                 <Calendar className="w-4 h-4 mr-2" />
                 Ver agenda
               </Button>
               <Button onClick={() => navigate('/patients/create')}>
                 <Users className="w-4 h-4 mr-2" />
                 Nuevo paciente
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  localStorage.setItem('userData', JSON.stringify(mockUserData));
-                  window.location.reload();
-                }}
-                className="text-xs"
-              >
-                🔄 Cargar Datos Mock
               </Button>
             </div>
           </div>
@@ -282,44 +230,39 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-blue-600">Cargando información del doctor...</span>
-                </div>
-              ) : doctorInfo ? (
+              {doctorInfo ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
                       <div className="text-2xl font-bold text-blue-600">{doctorInfo.name}</div>
                       <div className="text-sm text-blue-500">Nombre</div>
                     </div>
-                                      <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
-                    <div className="text-lg font-semibold text-blue-600">{doctorInfo.phone}</div>
-                    <div className="text-sm text-blue-500">Teléfono</div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-2 text-blue-600 hover:text-blue-700"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(doctorInfo.phone);
-                          toast({
-                            title: "¡Teléfono copiado!",
-                            description: `${doctorInfo.phone} ha sido copiado al portapapeles`,
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Error al copiar",
-                            description: "No se pudo copiar el teléfono al portapapeles",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      📋 Copiar
-                    </Button>
-                  </div>
+                    <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
+                      <div className="text-lg font-semibold text-blue-600">{doctorInfo.phone}</div>
+                      <div className="text-sm text-blue-500">Teléfono</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-blue-600 hover:text-blue-700"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(doctorInfo.phone);
+                            toast({
+                              title: "¡Teléfono copiado!",
+                              description: `${doctorInfo.phone} ha sido copiado al portapapeles`,
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Error al copiar",
+                              description: "No se pudo copiar el teléfono al portapapeles",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        📋 Copiar
+                      </Button>
+                    </div>
                     <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
                       <div className="text-lg font-semibold text-blue-600">{doctorInfo.specialization}</div>
                       <div className="text-sm text-blue-500">Especialización</div>
@@ -375,7 +318,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalPatients}</div>
                 <p className="text-xs text-muted-foreground">
-                  +{stats.newPatientsThisMonth} este mes
+                  {stats.newPatientsThisMonth > 0 ? `+${stats.newPatientsThisMonth} este mes` : 'Sin nuevos pacientes'}
                 </p>
               </CardContent>
             </Card>
@@ -413,7 +356,9 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {Math.round((stats.completedAppointments / stats.totalAppointments) * 100)}%
+                  {stats.totalAppointments > 0 
+                    ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100)
+                    : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Citas completadas
@@ -436,24 +381,36 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {recentAppointments.map((appointment) => (
-                    <div key={appointment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Users className="w-5 h-5 text-blue-600" />
+                {recentAppointments.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentAppointments.map((appointment) => (
+                      <div key={appointment.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{appointment.patientName}</p>
+                            <p className="text-xs text-gray-500">{formatDate(appointment.dateTime)}</p>
+                            <p className="text-xs text-gray-500">{appointment.type}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{appointment.patientName}</p>
-                          <p className="text-xs text-gray-500">{formatDate(appointment.dateTime)}</p>
-                          <p className="text-xs text-gray-500">{appointment.type}</p>
-                        </div>
+                        {getStatusBadge(appointment.status)}
                       </div>
-                      {getStatusBadge(appointment.status)}
-                    </div>
-                  ))}
-                </div>
-                <Button variant="outline" className="w-full mt-4">
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No hay citas programadas</p>
+                    <p className="text-sm">Las próximas citas aparecerán aquí</p>
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => navigate('/appointments')}
+                >
                   Ver todas las citas
                 </Button>
               </CardContent>
@@ -471,24 +428,36 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {recentBilling.map((billing) => (
-                    <div key={billing.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <DollarSign className="w-5 h-5 text-green-600" />
+                {recentBilling.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentBilling.map((billing) => (
+                      <div key={billing.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <DollarSign className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{billing.patientName}</p>
+                            <p className="text-xs text-gray-500">Vence: {billing.dueDate}</p>
+                            <p className="text-sm font-semibold">{formatCurrency(billing.amount)}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{billing.patientName}</p>
-                          <p className="text-xs text-gray-500">Vence: {billing.dueDate}</p>
-                          <p className="text-sm font-semibold">{formatCurrency(billing.amount)}</p>
-                        </div>
+                        {getBillingStatusBadge(billing.status)}
                       </div>
-                      {getBillingStatusBadge(billing.status)}
-                    </div>
-                  ))}
-                </div>
-                <Button variant="outline" className="w-full mt-4">
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <DollarSign className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No hay facturas recientes</p>
+                    <p className="text-sm">Las facturas aparecerán aquí</p>
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => navigate('/billing')}
+                >
                   Ver todas las facturas
                 </Button>
               </CardContent>
@@ -513,15 +482,27 @@ const Dashboard = () => {
                   <Users className="w-6 h-6 mb-2" />
                   <span className="text-sm">Nuevo Paciente</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex-col">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex-col"
+                  onClick={() => navigate('/appointments/create')}
+                >
                   <Calendar className="w-6 h-6 mb-2" />
                   <span className="text-sm">Nueva Cita</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex-col">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex-col"
+                  onClick={() => navigate('/billing/create')}
+                >
                   <DollarSign className="w-6 h-6 mb-2" />
                   <span className="text-sm">Nueva Factura</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex-col">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex-col"
+                  onClick={() => navigate('/appointments')}
+                >
                   <Clock className="w-6 h-6 mb-2" />
                   <span className="text-sm">Ver Agenda</span>
                 </Button>

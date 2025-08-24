@@ -1,26 +1,101 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, UserPlus, MessageSquare, Copy, Check } from "lucide-react";
+import { ArrowLeft, UserPlus, MessageSquare, Copy, Check, AlertCircle } from "lucide-react";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/hooks/use-toast";
+
+interface FormData {
+  name: string;
+  email: string;
+  phone: string;
+  notes: string;
+  doctorPhone: string;
+}
+
+interface FormErrors {
+  name?: string;
+  email?: string;
+  phone?: string;
+  doctorPhone?: string;
+}
 
 const CreatePatient = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
     phone: "",
-    notes: ""
+    notes: "",
+    doctorPhone: ""
   });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [createdPatient, setCreatedPatient] = useState<any>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get access token from localStorage
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      toast({
+        title: "Autenticación requerida",
+        description: "Debes iniciar sesión para crear pacientes",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
+    }
+    setAccessToken(token);
+
+    // Get doctor phone from user data
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    if (userData.phone) {
+      setFormData(prev => ({
+        ...prev,
+        doctorPhone: userData.phone
+      }));
+    }
+  }, [navigate, toast]);
+
+  const validateForm = (): boolean => {
+    const errors: FormErrors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      errors.name = "El nombre es obligatorio";
+    } else if (formData.name.trim().length < 2) {
+      errors.name = "El nombre debe tener al menos 2 caracteres";
+    }
+
+    // Phone validation
+    if (!formData.phone.trim()) {
+      errors.phone = "El teléfono es obligatorio";
+    } else if (!/^[\+]?[0-9\s\-\(\)]{8,}$/.test(formData.phone.trim())) {
+      errors.phone = "El teléfono debe tener al menos 8 dígitos";
+    }
+
+    // Doctor phone validation
+    if (!formData.doctorPhone.trim()) {
+      errors.doctorPhone = "El teléfono del doctor es obligatorio";
+    } else if (!/^[\+]?[0-9\s\-\(\)]{8,}$/.test(formData.doctorPhone.trim())) {
+      errors.doctorPhone = "El teléfono del doctor debe tener al menos 8 dígitos";
+    }
+
+    // Email validation (optional but if provided, must be valid)
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errors.email = "El email debe tener un formato válido";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -28,17 +103,35 @@ const CreatePatient = () => {
       ...prev,
       [name]: value
     }));
+
+    // Clear error when user starts typing
+    if (formErrors[name as keyof FormErrors]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.phone.trim()) {
+    if (!validateForm()) {
       toast({
-        title: "Campos requeridos",
-        description: "El nombre y teléfono son obligatorios",
+        title: "Error de validación",
+        description: "Por favor, corrige los errores en el formulario",
         variant: "destructive"
       });
+      return;
+    }
+
+    if (!accessToken) {
+      toast({
+        title: "Error de autenticación",
+        description: "No tienes acceso. Por favor, inicia sesión nuevamente",
+        variant: "destructive"
+      });
+      navigate('/login');
       return;
     }
 
@@ -49,12 +142,14 @@ const CreatePatient = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
         },
         body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -100,80 +195,104 @@ const CreatePatient = () => {
     }
   };
 
-  const handleBackToDashboard = () => {
-    navigate('/dashboard');
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      notes: "",
+      doctorPhone: formData.doctorPhone // Keep doctor phone
+    });
+    setFormErrors({});
+    setCreatedPatient(null);
+    setLinkCopied(false);
   };
+
+  if (!accessToken) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (createdPatient) {
     return (
       <>
         <Helmet>
           <title>Paciente Creado | Tiare - Gestión de Práctica Médica</title>
-          <meta name="description" content="Paciente creado exitosamente" />
+          <meta name="description" content="Paciente creado exitosamente en el sistema" />
         </Helmet>
         
         <div className="min-h-screen bg-gray-50 p-6">
           <div className="max-w-2xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center mb-6">
-              <Button variant="ghost" onClick={handleBackToDashboard} className="mr-4">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver al Dashboard
-              </Button>
+            {/* Success Header */}
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">¡Paciente Creado Exitosamente!</h1>
+              <p className="text-gray-600">El paciente ha sido agregado al sistema y está listo para recibir citas</p>
             </div>
 
-            {/* Success Card */}
-            <Card className="border-green-200 bg-green-50">
-              <CardHeader className="text-center">
-                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <UserPlus className="w-8 h-8 text-green-600" />
+            {/* Patient Details Card */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Detalles del Paciente
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Nombre</Label>
+                    <p className="text-lg font-semibold">{createdPatient.patient.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Teléfono</Label>
+                    <p className="text-lg font-semibold">{createdPatient.patient.phone}</p>
+                  </div>
+                  {createdPatient.patient.email && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Email</Label>
+                      <p className="text-lg font-semibold">{createdPatient.patient.email}</p>
+                    </div>
+                  )}
+                  {createdPatient.patient.notes && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Notas</Label>
+                      <p className="text-lg font-semibold">{createdPatient.patient.notes}</p>
+                    </div>
+                  )}
                 </div>
-                <CardTitle className="text-green-800">¡Paciente Creado Exitosamente!</CardTitle>
-                <CardDescription className="text-green-600">
-                  {createdPatient.patient.name} ha sido agregado al sistema
+              </CardContent>
+            </Card>
+
+            {/* WhatsApp Integration Card */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <MessageSquare className="w-5 h-5 mr-2" />
+                  Integración con WhatsApp
+                </CardTitle>
+                <CardDescription>
+                  Enlace personalizado para iniciar la comunicación con el paciente
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Patient Info */}
-                <div className="bg-white p-4 rounded-lg border border-green-200">
-                  <h3 className="font-semibold text-gray-900 mb-3">Información del Paciente</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">Nombre:</span>
-                      <p className="font-medium">{createdPatient.patient.name}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Teléfono:</span>
-                      <p className="font-medium">{createdPatient.patient.phone}</p>
-                    </div>
-                    {createdPatient.patient.email && (
-                      <div>
-                        <span className="text-gray-500">Email:</span>
-                        <p className="font-medium">{createdPatient.patient.email}</p>
-                      </div>
-                    )}
-                    {createdPatient.patient.notes && (
-                      <div>
-                        <span className="text-gray-500">Notas:</span>
-                        <p className="font-medium">{createdPatient.patient.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* WhatsApp Integration */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Iniciar Conversación por WhatsApp
-                  </h3>
-                  <p className="text-blue-700 text-sm mb-3">
-                    {createdPatient.whatsappMessage}
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 mb-2">
+                    <strong>Mensaje predefinido:</strong>
                   </p>
-                  <Button 
+                  <p className="text-green-700">{createdPatient.whatsappMessage}</p>
+                </div>
+                
+                <div className="flex space-x-3">
+                  <Button
                     onClick={handleCopyLink}
-                    className="w-full bg-green-600 hover:bg-green-700"
                     disabled={linkCopied}
+                    className={`flex-1 ${linkCopied ? 'bg-green-600 hover:bg-green-700' : ''}`}
                   >
                     {linkCopied ? (
                       <>
@@ -187,32 +306,25 @@ const CreatePatient = () => {
                       </>
                     )}
                   </Button>
-                  <p className="text-xs text-blue-600 text-center mt-2">
-                    Copia este enlace y compártelo con el paciente para iniciar la conversación por WhatsApp
-                  </p>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex space-x-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleBackToDashboard}
-                    className="flex-1"
-                  >
-                    Volver al Dashboard
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      setCreatedPatient(null);
-                      setFormData({ name: "", email: "", phone: "", notes: "" });
-                    }}
-                    className="flex-1"
-                  >
-                    Crear Otro Paciente
-                  </Button>
-                </div>
+                
+                <p className="text-xs text-gray-500 text-center">
+                  Copia este enlace y compártelo con el paciente para iniciar la comunicación
+                </p>
               </CardContent>
             </Card>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              <Button variant="outline" onClick={() => navigate('/dashboard')} className="flex-1">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Volver al Dashboard
+              </Button>
+              <Button onClick={resetForm} className="flex-1">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Crear Otro Paciente
+              </Button>
+            </div>
           </div>
         </div>
       </>
@@ -222,22 +334,22 @@ const CreatePatient = () => {
   return (
     <>
       <Helmet>
-        <title>Nuevo Paciente | Tiare - Gestión de Práctica Médica</title>
-        <meta name="description" content="Agregar nuevo paciente al sistema" />
+        <title>Crear Paciente | Tiare - Gestión de Práctica Médica</title>
+        <meta name="description" content="Agregar un nuevo paciente al sistema" />
       </Helmet>
       
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <div className="flex items-center mb-6">
-            <Button variant="ghost" onClick={handleBackToDashboard} className="mr-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver al Dashboard
-            </Button>
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Nuevo Paciente</h1>
-              <p className="text-gray-600">Agrega un nuevo paciente al sistema</p>
+              <h1 className="text-3xl font-bold text-gray-900">Crear Nuevo Paciente</h1>
+              <p className="text-gray-600">Agrega un nuevo paciente a tu práctica médica</p>
             </div>
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver
+            </Button>
           </div>
 
           {/* Form Card */}
@@ -248,74 +360,133 @@ const CreatePatient = () => {
                 Información del Paciente
               </CardTitle>
               <CardDescription>
-                Completa los campos para registrar al nuevo paciente
+                Completa los campos requeridos para registrar al paciente
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Name Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre completo *</Label>
+                  <Label htmlFor="name" className="text-sm font-medium">
+                    Nombre Completo <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="name"
                     name="name"
+                    type="text"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="Ingresa el nombre completo"
-                    required
+                    placeholder="Ej: María González"
+                    className={formErrors.name ? "border-red-500" : ""}
                   />
+                  {formErrors.name && (
+                    <div className="flex items-center space-x-2 text-sm text-red-600">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{formErrors.name}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Phone Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono *</Label>
+                  <Label htmlFor="phone" className="text-sm font-medium">
+                    Teléfono del Paciente <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="phone"
                     name="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    placeholder="+34 612 345 678"
-                    required
+                    placeholder="Ej: +56912345678"
+                    className={formErrors.phone ? "border-red-500" : ""}
                   />
+                  {formErrors.phone && (
+                    <div className="flex items-center space-x-2 text-sm text-red-600">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{formErrors.phone}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Doctor Phone Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="doctorPhone" className="text-sm font-medium">
+                    Teléfono del Doctor <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="doctorPhone"
+                    name="doctorPhone"
+                    type="tel"
+                    value={formData.doctorPhone}
+                    onChange={handleInputChange}
+                    placeholder="Ej: +56920115198"
+                    className={formErrors.doctorPhone ? "border-red-500" : ""}
+                  />
+                  {formErrors.doctorPhone && (
+                    <div className="flex items-center space-x-2 text-sm text-red-600">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{formErrors.doctorPhone}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Este número se usará para asociar al paciente con tu perfil
+                  </p>
                 </div>
 
                 {/* Email Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email del Paciente
+                  </Label>
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    placeholder="paciente@ejemplo.com"
+                    placeholder="Ej: maria.gonzalez@email.com"
+                    className={formErrors.email ? "border-red-500" : ""}
                   />
+                  {formErrors.email && (
+                    <div className="flex items-center space-x-2 text-sm text-red-600">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{formErrors.email}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Campo opcional para comunicación por email
+                  </p>
                 </div>
 
                 {/* Notes Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notas adicionales</Label>
+                  <Label htmlFor="notes" className="text-sm font-medium">
+                    Notas Adicionales
+                  </Label>
                   <Textarea
                     id="notes"
                     name="notes"
                     value={formData.notes}
                     onChange={handleInputChange}
-                    placeholder="Información adicional sobre el paciente..."
+                    placeholder="Información adicional sobre el paciente, motivo de consulta, etc."
                     rows={3}
                   />
+                  <p className="text-xs text-gray-500">
+                    Campo opcional para información adicional
+                  </p>
                 </div>
 
                 {/* Submit Button */}
                 <Button 
                   type="submit" 
+                  className="w-full" 
                   disabled={loading}
-                  className="w-full"
                 >
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creando paciente...
+                      Creando Paciente...
                     </>
                   ) : (
                     <>
