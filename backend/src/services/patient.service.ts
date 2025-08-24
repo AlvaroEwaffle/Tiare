@@ -591,4 +591,41 @@ export class PatientService {
       throw new Error(`Failed to get patient statistics: ${error}`);
     }
   }
+
+  /**
+   * Find doctor by phone number
+   */
+  static async findDoctorByPhone(phoneNumber: string): Promise<{
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    specialization: string;
+    licenseNumber: string;
+  } | null> {
+    try {
+      // Clean phone number (remove spaces, dashes, plus sign)
+      const cleanPhone = phoneNumber.replace(/[\s\-\(\)\+]/g, '');
+      
+      const doctor = await Doctor.findOne({ 
+        phone: { $regex: cleanPhone, $options: 'i' },
+        isActive: true 
+      });
+
+      if (!doctor) {
+        return null;
+      }
+
+      return {
+        id: doctor.id,
+        name: doctor.name,
+        phone: doctor.phone,
+        email: doctor.email,
+        specialization: doctor.specialization,
+        licenseNumber: doctor.licenseNumber
+      };
+    } catch (error) {
+      throw new Error(`Failed to find doctor by phone: ${error}`);
+    }
+  }
 }

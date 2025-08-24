@@ -3,6 +3,8 @@ node_modules/
 backend/node_modules/
 frontend/node_modules/
 
+curl.sh
+
 # Environment variables
 .env
 backend/.env

@@ -1,40 +1,80 @@
 import { Router } from 'express';
+import { PatientService } from '../services/patient.service';
+import { AuthService } from '../services/auth.service';
 
 const router = Router();
 
-// Create new patient
-router.post('/create', async (req, res) => {
+// Middleware to verify JWT token
+const authenticateToken = (req: any, res: any, next: any) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+      console.log('❌ No token provided');
+      return res.status(401).json({ error: 'Access token required' });
+    }
+
+    const decoded = AuthService.verifyToken(token);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.log('❌ Invalid token:', error);
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+};
+
+// Create new patient (Protected - requires authentication)
+router.post('/create', authenticateToken, async (req, res) => {
   try {
     console.log('👶 Patient creation request received');
     console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('👨‍⚕️ Requested by doctor:', req.user?.email);
     
-    const { name, email, phone, notes } = req.body;
+    const { name, email, phone, notes, doctorPhone } = req.body;
 
     // Validate required fields
-    if (!name || !phone) {
-      console.log('❌ Missing required fields: name and phone are required');
+    if (!name || !phone || !doctorPhone) {
+      console.log('❌ Missing required fields: name, phone, and doctorPhone are required');
       return res.status(400).json({ 
-        error: 'Missing required fields: name and phone are required' 
+        error: 'Missing required fields: name, phone, and doctorPhone are required' 
       });
     }
 
     console.log('✅ All required fields present, proceeding with patient creation...');
-    console.log('👶 Patient data:', { name, email: email || 'Not provided', phone, notes: notes || 'Not provided' });
+    console.log('👶 Patient data:', { 
+      name, 
+      email: email || 'Not provided', 
+      phone, 
+      notes: notes || 'Not provided',
+      doctorPhone 
+    });
 
-    // For now, we'll create a simple patient object without requiring doctor association
-    // In a real app, you'd get the doctor ID from the authenticated session
-    const patientId = require('uuid').v4();
-    const patient = {
-      id: patientId,
+    // Find doctor by phone number
+    console.log('🔍 Searching for doctor with phone:', doctorPhone);
+    const doctor = await PatientService.findDoctorByPhone(doctorPhone);
+    
+    if (!doctor) {
+      console.log('❌ Doctor not found with phone:', doctorPhone);
+      return res.status(404).json({ 
+        error: 'Doctor not found with the provided phone number' 
+      });
+    }
+
+    console.log('✅ Doctor found:', { id: doctor.id, name: doctor.name, phone: doctor.phone });
+
+    // Create patient using PatientService (this will save to database)
+    const patientData = {
+      doctorId: doctor.id,
       name,
-      email,
       phone,
-      notes,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      email
     };
 
-    console.log('✅ Patient created successfully:', patient.id);
+    console.log('💾 Creating patient in database with data:', patientData);
+    const patient = await PatientService.createPatient(patientData);
+
+    console.log('✅ Patient created successfully in database:', patient.id);
 
     // Generate WhatsApp link
     const whatsappMessage = encodeURIComponent(`Hola ${name}! 👋 Soy el asistente virtual de Tiare. ¿En qué puedo ayudarte hoy?`);
@@ -49,7 +89,9 @@ router.post('/create', async (req, res) => {
         name: patient.name,
         email: patient.email,
         phone: patient.phone,
-        notes: patient.notes,
+        doctorId: patient.doctorId,
+        doctorName: doctor.name,
+        doctorPhone: doctor.phone,
         createdAt: patient.createdAt
       },
       whatsappLink: whatsappLink,
@@ -63,6 +105,17 @@ router.post('/create', async (req, res) => {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : 'No stack trace'
     });
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes('Doctor not found')) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.includes('already exists')) {
+        return res.status(409).json({ error: error.message });
+      }
+    }
+    
     res.status(500).json({ 
       error: error instanceof Error ? error.message : 'Internal server error' 
     });
