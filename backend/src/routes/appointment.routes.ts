@@ -136,20 +136,19 @@ router.get('/', authenticateToken, async (req, res) => {
     console.log('🔧 [Get Appointments] Fetching appointments for doctor:', doctorId);
 
     // Get appointments
-    const appointments = await AppointmentService.getAppointmentsByDoctor(doctorId, {
-      status: status as any,
-      patientId: patientId as string,
-      startDate: startDate ? new Date(startDate as string) : undefined,
-      endDate: endDate ? new Date(endDate as string) : undefined
-    });
+    const appointments = await AppointmentService.getAppointmentsByDoctor(doctorId, 
+      startDate ? new Date(startDate as string) : undefined,
+      endDate ? new Date(endDate as string) : undefined,
+      status as string
+    );
 
-    console.log('✅ [Get Appointments] Found', appointments.length, 'appointments');
+    console.log('✅ [Get Appointments] Found', appointments.appointments.length, 'appointments');
 
     res.json({
       success: true,
       data: {
-        appointments,
-        totalCount: appointments.length
+        appointments: appointments.appointments,
+        totalCount: appointments.total
       }
     });
 
@@ -181,7 +180,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     console.log('🔧 [Get Appointment] Fetching appointment:', appointmentId, 'for doctor:', doctorId);
 
     // Get appointment
-    const appointment = await AppointmentService.getAppointmentById(appointmentId, doctorId);
+    const appointment = await AppointmentService.getAppointmentWithDetails(appointmentId);
 
     if (!appointment) {
       return res.status(404).json({

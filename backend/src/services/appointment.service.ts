@@ -756,7 +756,7 @@ export class AppointmentService {
       const currentDate = new Date(startDate);
 
       while (currentDate <= endDate) {
-        const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'lowercase' });
+        const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
         const workingHours = doctor.practiceSettings.workingHours[dayOfWeek as keyof typeof doctor.practiceSettings.workingHours];
 
         if (workingHours?.available) {
