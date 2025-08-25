@@ -37,57 +37,84 @@ router.get('/debug', async (req, res) => {
  */
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    console.log('🚀 [Appointment Route] POST /api/appointments - Request received');
+    console.log('📋 [Appointment Route] Request headers:', {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers.authorization ? 'Bearer ***' : 'Missing',
+      'user-agent': req.headers['user-agent']
+    });
+    console.log('📦 [Appointment Route] Request body:', req.body);
+
     const doctorId = req.user?.userId;
     if (!doctorId) {
+      console.error('❌ [Appointment Route] User ID not found in token');
       return res.status(401).json({
         success: false,
         error: 'User ID not found in token'
       });
     }
+    console.log('✅ [Appointment Route] User authenticated, doctorId:', doctorId);
 
     const { patientId, dateTime, duration, type, notes } = req.body;
 
     // Validate required fields
     if (!patientId || !dateTime || !duration || !type) {
+      console.error('❌ [Appointment Route] Missing required fields:', {
+        patientId: !!patientId,
+        dateTime: !!dateTime,
+        duration: !!duration,
+        type: !!type
+      });
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: patientId, dateTime, duration, type'
       });
     }
+    console.log('✅ [Appointment Route] All required fields present');
 
     // Validate consultation type
     if (!['presential', 'remote', 'home'].includes(type)) {
+      console.error('❌ [Appointment Route] Invalid consultation type:', type);
       return res.status(400).json({
         success: false,
         error: 'Invalid consultation type. Must be: presential, remote, or home'
       });
     }
+    console.log('✅ [Appointment Route] Consultation type valid:', type);
 
     // Validate duration
     if (duration < 15 || duration > 480) { // 15 minutes to 8 hours
+      console.error('❌ [Appointment Route] Invalid duration:', duration);
       return res.status(400).json({
         success: false,
         error: 'Invalid duration. Must be between 15 and 480 minutes'
       });
     }
+    console.log('✅ [Appointment Route] Duration valid:', duration);
 
     // Validate dateTime is in the future
     const appointmentDateTime = new Date(dateTime);
     const now = new Date();
     if (appointmentDateTime <= now) {
+      console.error('❌ [Appointment Route] Appointment time in the past:', {
+        appointmentDateTime,
+        now,
+        difference: appointmentDateTime.getTime() - now.getTime()
+      });
       return res.status(400).json({
         success: false,
         error: 'Appointment date and time must be in the future'
       });
     }
+    console.log('✅ [Appointment Route] Appointment time in the future:', appointmentDateTime);
 
-    console.log('🔧 [Create Appointment] Creating appointment:', {
-      doctorId,
+    console.log('🔧 [Appointment Route] All validations passed, calling AppointmentService.createAppointment');
+    console.log('📋 [Appointment Route] Service call parameters:', {
       patientId,
       dateTime: appointmentDateTime,
       duration,
       type,
-      notes
+      notes: notes || ''
     });
 
     // Create appointment
@@ -99,7 +126,7 @@ router.post('/', authenticateToken, async (req, res) => {
       notes: notes || ''
     });
 
-    console.log('✅ [Create Appointment] Appointment created successfully:', appointment.id);
+    console.log('✅ [Appointment Route] Appointment created successfully:', appointment.id);
 
     res.status(201).json({
       success: true,
@@ -108,7 +135,7 @@ router.post('/', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Create Appointment] Error creating appointment:', error);
+    console.error('❌ [Appointment Route] Error creating appointment:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create appointment'

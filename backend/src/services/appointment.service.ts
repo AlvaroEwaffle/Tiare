@@ -58,19 +58,46 @@ export class AppointmentService {
    */
   static async createAppointment(appointmentData: CreateAppointmentData): Promise<AppointmentWithDetails> {
     try {
+      console.log('🔧 [AppointmentService] Request received to create appointment:', {
+        patientId: appointmentData.patientId,
+        dateTime: appointmentData.dateTime,
+        duration: appointmentData.duration,
+        type: appointmentData.type,
+        notes: appointmentData.notes
+      });
+
       // First, find the patient to get their doctorId
+      console.log('🔍 [AppointmentService] Searching for patient with ID:', appointmentData.patientId);
       const patient = await Patient.findOne({ id: appointmentData.patientId, isActive: true });
       if (!patient) {
+        console.error('❌ [AppointmentService] Patient not found with ID:', appointmentData.patientId);
         throw new Error('Patient not found');
       }
+      console.log('✅ [AppointmentService] Patient found:', {
+        id: patient.id,
+        name: patient.name,
+        doctorId: patient.doctorId
+      });
 
       // Then find the doctor using the patient's doctorId
+      console.log('🔍 [AppointmentService] Searching for doctor with ID:', patient.doctorId);
       const doctor = await Doctor.findOne({ id: patient.doctorId, isActive: true });
       if (!doctor) {
+        console.error('❌ [AppointmentService] Doctor not found for patient:', patient.doctorId);
         throw new Error('Doctor not found for the patient');
       }
+      console.log('✅ [AppointmentService] Doctor found:', {
+        id: doctor.id,
+        name: doctor.name,
+        specialization: doctor.specialization
+      });
 
       // Check if the time slot is available
+      console.log('🔍 [AppointmentService] Checking availability for:', {
+        doctorId: doctor.id,
+        dateTime: appointmentData.dateTime,
+        duration: appointmentData.duration
+      });
       const isAvailable = await this.checkAvailability(
         doctor.id,
         appointmentData.dateTime,
@@ -78,10 +105,16 @@ export class AppointmentService {
       );
 
       if (!isAvailable) {
+        console.error('❌ [AppointmentService] Time slot not available:', {
+          dateTime: appointmentData.dateTime,
+          duration: appointmentData.duration
+        });
         throw new Error('Time slot is not available');
       }
+      console.log('✅ [AppointmentService] Time slot is available');
 
       // Create appointment
+      console.log('➕ [AppointmentService] Creating appointment in database...');
       const appointment = new Appointment({
         id: uuidv4(),
         doctorId: doctor.id, // Set doctorId from the patient's doctor
@@ -89,9 +122,11 @@ export class AppointmentService {
       });
 
       await appointment.save();
+      console.log('✅ [AppointmentService] Appointment saved to database with ID:', appointment.id);
 
       // Create Google Calendar event if doctor has calendar connected
       if (doctor.calendar?.oauth?.refreshToken && doctor.calendar?.oauth?.calendarId) {
+        console.log('📅 [AppointmentService] Doctor has Google Calendar connected, creating event...');
         try {
           const event: GoogleCalendarEvent = {
             summary: `Consulta con ${patient.name}`,
@@ -123,14 +158,18 @@ export class AppointmentService {
           appointment.googleEventId = eventId;
           appointment.googleCalendarId = doctor.calendar.oauth.calendarId;
           await appointment.save();
+          console.log('✅ [AppointmentService] Google Calendar event created with ID:', eventId);
         } catch (error) {
-          console.error('Failed to create Google Calendar event:', error);
+          console.error('❌ [AppointmentService] Failed to create Google Calendar event:', error);
           // Don't fail the appointment creation if calendar sync fails
         }
+      } else {
+        console.log('ℹ️ [AppointmentService] Doctor does not have Google Calendar connected');
       }
 
       // Send confirmation to patient via WhatsApp if enabled
       if (patient.communicationPreferences?.whatsappEnabled) {
+        console.log('📱 [AppointmentService] Patient has WhatsApp enabled, sending confirmation...');
         try {
           await WhatsAppService.sendAppointmentConfirmation(
             patient.phone,
@@ -143,12 +182,16 @@ export class AppointmentService {
             },
             doctor.id
           );
+          console.log('✅ [AppointmentService] WhatsApp confirmation sent successfully');
         } catch (error) {
-          console.error('Failed to send WhatsApp confirmation:', error);
+          console.error('❌ [AppointmentService] Failed to send WhatsApp confirmation:', error);
         }
+      } else {
+        console.log('ℹ️ [AppointmentService] Patient does not have WhatsApp enabled');
       }
 
       // Log the event
+      console.log('📝 [AppointmentService] Creating event log...');
       await EventLog.create({
         id: uuidv4(),
         level: 'info',
@@ -164,9 +207,18 @@ export class AppointmentService {
           type: appointmentData.type
         }
       });
+      console.log('✅ [AppointmentService] Event log created successfully');
+
+      console.log('🎉 [AppointmentService] Appointment creation completed successfully for:', {
+        appointmentId: appointment.id,
+        patientName: patient.name,
+        doctorName: doctor.name,
+        dateTime: appointmentData.dateTime
+      });
 
       return await this.getAppointmentWithDetails(appointment.id);
     } catch (error) {
+      console.error('❌ [AppointmentService] Error creating appointment:', error);
       throw new Error(`Failed to create appointment: ${error}`);
     }
   }
