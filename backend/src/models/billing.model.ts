@@ -83,10 +83,11 @@ billingSchema.pre('save', function(next) {
   next();
 });
 
-// Create indexes for faster queries
+// Create indexes for faster queries (avoiding duplicates with unique: true fields)
 billingSchema.index({ doctorId: 1, status: 1 });
 billingSchema.index({ patientId: 1, status: 1 });
 billingSchema.index({ dueDate: 1, status: 1 });
-billingSchema.index({ invoiceNumber: 1 });
 
 export const Billing = mongoose.model<IBilling>('Billing', billingSchema);
+
+export default Billing;

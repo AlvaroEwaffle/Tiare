@@ -24,6 +24,67 @@ const authenticateToken = (req: any, res: any, next: any) => {
   }
 };
 
+
+
+// Get all patients for the authenticated doctor
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    console.log('👶 Patient list request received');
+    console.log('👨‍⚕️ Requested by doctor:', req.user?.email);
+    
+    const doctorId = req.user?.userId;
+    if (!doctorId) {
+      return res.status(401).json({ error: 'User ID not found in token' });
+    }
+
+    console.log('🔍 Fetching patients for doctor:', doctorId);
+    
+    // First, let's check what's in the database directly
+    const Patient = require('../models').Patient;
+    const allPatients = await Patient.find({}).lean();
+    console.log('🔍 [DEBUG] All patients in database:', allPatients.length);
+    console.log('🔍 [DEBUG] Sample patient data:', allPatients.slice(0, 2));
+    
+    const patientsByDoctor = await Patient.find({ doctorId }).lean();
+    console.log('🔍 [DEBUG] Patients with this doctorId:', patientsByDoctor.length);
+    console.log('🔍 [DEBUG] Sample patients by doctor:', patientsByDoctor.slice(0, 2));
+    
+    const activePatientsByDoctor = await Patient.find({ doctorId, isActive: true }).lean();
+    console.log('🔍 [DEBUG] Active patients with this doctorId:', activePatientsByDoctor.length);
+    
+    // Get patients using PatientService
+    const result = await PatientService.getPatientsByDoctor(doctorId);
+    
+    console.log('✅ Found', result.patients.length, 'patients for doctor:', doctorId);
+
+    res.json({
+      success: true,
+      message: 'Patients retrieved successfully',
+      patients: result.patients.map(patient => ({
+        id: patient.id,
+        name: patient.name,
+        email: patient.email,
+        phone: patient.phone,
+        doctorId: patient.doctorId,
+        createdAt: patient.createdAt,
+        updatedAt: patient.updatedAt
+      })),
+      pagination: {
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Patient list error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch patients' 
+    });
+  }
+});
+
 // Create new patient (Protected - requires authentication)
 router.post('/create', authenticateToken, async (req, res) => {
   try {

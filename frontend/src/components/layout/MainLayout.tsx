@@ -63,28 +63,22 @@ const MainLayout = () => {
       current: location.pathname === '/dashboard'
     },
     {
-      name: 'Agenda',
-      href: '/agenda',
+      name: 'Citas',
+      href: '/appointments',
       icon: Calendar,
-      current: location.pathname.startsWith('/agenda')
+      current: location.pathname.startsWith('/appointments')
     },
     {
       name: 'Pacientes',
-      href: '/pacientes',
+      href: '/patients',
       icon: Users,
-      current: location.pathname.startsWith('/pacientes')
-    },
-    {
-      name: 'Citas',
-      href: '/citas',
-      icon: Calendar,
-      current: location.pathname.startsWith('/citas')
+      current: location.pathname.startsWith('/patients')
     },
     {
       name: 'Facturación',
-      href: '/facturacion',
+      href: '/billing',
       icon: DollarSign,
-      current: location.pathname.startsWith('/facturacion')
+      current: location.pathname.startsWith('/billing')
     },
     {
       name: 'Reportes',
@@ -200,7 +194,7 @@ const MainLayout = () => {
                       {userData.name}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
-                      {userData.specialization}
+                      {userData.specialization || 'Doctor'}
                     </p>
                   </div>
                   <DropdownMenu>
@@ -209,25 +203,17 @@ const MainLayout = () => {
                         <ChevronDown className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/perfil">
-                          <Settings className="mr-2 h-4 w-4" />
-                          Perfil
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/configuracion">
-                          <Settings className="mr-2 h-4 w-4" />
-                          Configuración
-                        </Link>
+                      <DropdownMenuItem onClick={() => navigate('/configuracion')}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Configuración
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
-                        Cerrar sesión
+                        Cerrar Sesión
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -251,69 +237,27 @@ const MainLayout = () => {
             <Menu className="h-6 w-6" />
           </Button>
 
-          {/* Separator */}
-          <div className="h-6 w-px bg-gray-200 lg:hidden" />
-
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            {/* Search */}
-            <div className="relative flex flex-1 items-center">
-              <Search className="pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar pacientes, citas, facturas..."
-                className="block h-full w-full border-0 py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm"
-              />
+            <div className="flex flex-1 items-center gap-x-4 lg:gap-x-6">
+              <div className="relative flex flex-1">
+                <Search className="pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  className="block h-full w-full border-0 py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm"
+                />
+              </div>
             </div>
-
-            {/* Right side */}
+            
             <div className="flex items-center gap-x-4 lg:gap-x-6">
-              {/* Notifications */}
               <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
+                <Bell className="h-6 w-6" />
                 {notifications > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs">
                     {notifications}
                   </Badge>
                 )}
               </Button>
-
-              {/* Separator */}
-              <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" />
-
-              {/* Profile dropdown for mobile */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="lg:hidden">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={userData.avatar} alt={userData.name} />
-                      <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
-                        {getInitials(userData.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/perfil">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Perfil
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/configuracion">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Configuración
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Cerrar sesión
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </div>

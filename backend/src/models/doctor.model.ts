@@ -35,6 +35,33 @@ const BillingPreferencesSchema = new Schema({
   taxPercentage: { type: Number, default: 0 }
 });
 
+// Google Calendar OAuth sub-schema
+const GoogleCalendarOAuthSchema = new Schema({
+  accessToken: { type: String, required: false },
+  refreshToken: { type: String, required: false },
+  expiryDate: { type: Date, required: false },
+  scope: { 
+    type: String, 
+    default: 'https://www.googleapis.com/auth/calendar' 
+  },
+  tokenType: { 
+    type: String, 
+    default: 'Bearer' 
+  },
+  calendarId: { type: String, required: false },
+  calendarName: { type: String, required: false },
+  lastSync: { type: Date, required: false },
+  nextSync: { type: Date, required: false },
+  isActive: { type: Boolean, default: false }
+});
+
+// Calendar schema that contains oauth as a sub-object
+const CalendarSchema = new Schema({
+  oauth: { type: GoogleCalendarOAuthSchema, default: () => ({}) },
+  lastSync: { type: Date, required: false },
+  nextSync: { type: Date, required: false }
+});
+
 export interface IDoctor extends Document {
   id: string;
   name: string;
@@ -72,6 +99,22 @@ export interface IDoctor extends Document {
     defaultCurrency: string;
     taxPercentage: number;
   };
+  calendar?: {
+    oauth?: {
+      accessToken?: string;
+      refreshToken?: string;
+      expiryDate?: Date;
+      scope?: string;
+      tokenType?: string;
+      calendarId?: string;
+      calendarName?: string;
+      lastSync?: Date;
+      nextSync?: Date;
+      isActive?: boolean;
+    };
+    lastSync?: Date;
+    nextSync?: Date;
+  };
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -90,6 +133,7 @@ const doctorSchema = new Schema<IDoctor>({
   googleRefreshToken: { type: String },
   practiceSettings: { type: PracticeSettingsSchema, default: () => ({}) },
   billingPreferences: { type: BillingPreferencesSchema, default: () => ({}) },
+  calendar: { type: CalendarSchema, default: () => ({}) },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
@@ -101,4 +145,10 @@ doctorSchema.pre('save', function(next) {
   next();
 });
 
+// Create only necessary indexes (avoiding duplicates with unique: true fields)
+doctorSchema.index({ phone: 1 });
+doctorSchema.index({ isActive: 1 });
+
 export const Doctor = mongoose.model<IDoctor>('Doctor', doctorSchema);
+
+export default Doctor;

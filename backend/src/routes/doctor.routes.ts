@@ -4,6 +4,8 @@ import { DoctorService } from '../services/doctor.service';
 
 const router = Router();
 
+
+
 // Doctor registration
 router.post('/register', async (req, res) => {
   try {
@@ -187,5 +189,29 @@ router.put('/:id', async (req, res) => {
     });
   }
 });
+
+// TEMPORARY DEBUG ENDPOINT - Remove in production
+router.get('/debug', async (req, res) => {
+  try {
+    console.log('🔍 [DEBUG] Doctor debug endpoint called');
+    
+    // Simple test without models first
+    res.json({
+      success: true,
+      debug: {
+        message: 'Debug endpoint working - testing models next',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Error in doctor debug endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Debug error'
+    });
+  }
+});
+
+
 
 export default router;

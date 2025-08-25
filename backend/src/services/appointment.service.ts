@@ -92,7 +92,7 @@ export class AppointmentService {
       await appointment.save();
 
       // Create Google Calendar event if doctor has calendar connected
-      if (doctor.googleRefreshToken && doctor.googleCalendarId) {
+      if (doctor.calendar?.oauth?.refreshToken && doctor.calendar?.oauth?.calendarId) {
         try {
           const event: GoogleCalendarEvent = {
             summary: `Consulta con ${patient.name}`,
@@ -110,19 +110,19 @@ export class AppointmentService {
               overrides: [
                 { method: 'popup' as const, minutes: 24 * 60 }, // 24 hours before
                 { method: 'popup' as const, minutes: 2 * 60 }   // 2 hours before
-              ]
+            ]
             }
           };
 
           const { eventId } = await GoogleCalendarService.createEvent(
-            doctor.googleRefreshToken,
-            doctor.googleCalendarId,
+            doctor.calendar.oauth.refreshToken,
+            doctor.calendar.oauth.calendarId,
             event,
             doctor.id
           );
 
           appointment.googleEventId = eventId;
-          appointment.googleCalendarId = doctor.googleCalendarId;
+          appointment.googleCalendarId = doctor.calendar.oauth.calendarId;
           await appointment.save();
         } catch (error) {
           console.error('Failed to create Google Calendar event:', error);
@@ -177,7 +177,7 @@ export class AppointmentService {
    */
   static async getAppointmentWithDetails(appointmentId: string): Promise<AppointmentWithDetails> {
     try {
-      const appointment = await Appointment.findById(appointmentId);
+      const appointment = await Appointment.findOne({ id: appointmentId });
       if (!appointment) {
         throw new Error('Appointment not found');
       }
@@ -503,9 +503,105 @@ export class AppointmentService {
     duration: number
   ): Promise<boolean> {
     try {
+      console.log('🔍 [AVAILABILITY] Checking availability for:', {
+        doctorId,
+        dateTime: dateTime.toISOString(),
+        duration
+      });
+
+      // 1. Check working hours first
+      const isWithinWorkingHours = await this.checkWorkingHours(doctorId, dateTime, duration);
+      if (!isWithinWorkingHours) {
+        console.log('❌ [AVAILABILITY] Outside working hours');
+        return false;
+      }
+
+      // 2. Check database for overlapping appointments
+      const isDatabaseAvailable = await this.checkDatabaseAvailability(doctorId, dateTime, duration);
+      if (!isDatabaseAvailable) {
+        console.log('❌ [AVAILABILITY] Database conflict found');
+        return false;
+      }
+
+      // 3. Check Google Calendar for conflicts (if connected)
+      const isGoogleCalendarAvailable = await this.checkGoogleCalendarAvailability(doctorId, dateTime, duration);
+      if (!isGoogleCalendarAvailable) {
+        console.log('❌ [AVAILABILITY] Google Calendar conflict found');
+        return false;
+      }
+
+      console.log('✅ [AVAILABILITY] Time slot is available');
+      return true;
+    } catch (error) {
+      console.error('❌ [AVAILABILITY] Error checking availability:', error);
+      throw new Error(`Failed to check availability: ${error}`);
+    }
+  }
+
+  /**
+   * Check if the appointment time is within working hours
+   */
+  private static async checkWorkingHours(
+    doctorId: string,
+    dateTime: Date,
+    duration: number
+  ): Promise<boolean> {
+    try {
+      const doctor = await Doctor.findOne({ id: doctorId, isActive: true });
+      if (!doctor) {
+        throw new Error('Doctor not found');
+      }
+
+      // Get day of week (0 = Sunday, 1 = Monday, etc.)
+      const dayOfWeek = dateTime.getDay();
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayName = dayNames[dayOfWeek];
+
+      const workingHours = doctor.practiceSettings?.workingHours?.[dayName];
+      
+      if (!workingHours?.available) {
+        console.log(`❌ [WORKING HOURS] ${dayName} is not a working day`);
+        return false;
+      }
+
+      // Parse working hours
+      const [startHour, startMinute] = workingHours.start.split(':').map(Number);
+      const [endHour, endMinute] = workingHours.end.split(':').map(Number);
+
+      const workStart = new Date(dateTime);
+      workStart.setHours(startHour, startMinute, 0, 0);
+      
+      const workEnd = new Date(dateTime);
+      workEnd.setHours(endHour, endMinute, 0, 0);
+
+      const appointmentEnd = new Date(dateTime.getTime() + duration * 60000);
+
+      // Check if appointment fits within working hours
+      const isWithinHours = dateTime >= workStart && appointmentEnd <= workEnd;
+
+      console.log(`🔍 [WORKING HOURS] ${dayName}: ${workStart.toTimeString()} - ${workEnd.toTimeString()}`);
+      console.log(`🔍 [WORKING HOURS] Appointment: ${dateTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
+      console.log(`🔍 [WORKING HOURS] Within hours: ${isWithinHours}`);
+
+      return isWithinHours;
+    } catch (error) {
+      console.error('❌ [WORKING HOURS] Error checking working hours:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check database availability for overlapping appointments
+   */
+  private static async checkDatabaseAvailability(
+    doctorId: string,
+    dateTime: Date,
+    duration: number
+  ): Promise<boolean> {
+    try {
       const endTime = new Date(dateTime.getTime() + duration * 60000);
 
-      // Check for overlapping appointments
+      // Check for overlapping appointments in database
       const overlappingAppointment = await Appointment.findOne({
         doctorId,
         status: { $in: ['scheduled', 'confirmed'] },
@@ -513,18 +609,57 @@ export class AppointmentService {
           {
             dateTime: { $lt: endTime },
             $expr: {
-              $gte: {
-                $add: ['$dateTime', { $multiply: ['$duration', 60000] }]
-              },
-              dateTime
+              $gte: [
+                { $add: ['$dateTime', { $multiply: ['$duration', 60000] }] },
+                dateTime
+              ]
             }
           }
         ]
       });
 
-      return !overlappingAppointment;
+      const isAvailable = !overlappingAppointment;
+      console.log(`🔍 [DATABASE] Database availability: ${isAvailable}`);
+      
+      return isAvailable;
     } catch (error) {
-      throw new Error(`Failed to check availability: ${error}`);
+      console.error('❌ [DATABASE] Error checking database availability:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check Google Calendar availability for conflicts
+   */
+  private static async checkGoogleCalendarAvailability(
+    doctorId: string,
+    dateTime: Date,
+    duration: number
+  ): Promise<boolean> {
+    try {
+      const doctor = await Doctor.findOne({ id: doctorId, isActive: true });
+      if (!doctor?.calendar?.oauth?.refreshToken || !doctor?.calendar?.oauth?.calendarId) {
+        console.log('🔍 [GOOGLE CALENDAR] Doctor not connected to Google Calendar, skipping check');
+        return true; // If not connected, assume available
+      }
+
+      const endTime = new Date(dateTime.getTime() + duration * 60000);
+      
+      // Use Google Calendar API to check for conflicts
+      const isAvailable = await GoogleCalendarService.checkAvailability(
+        doctor.calendar.oauth.refreshToken,
+        doctor.calendar.oauth.calendarId,
+        dateTime.toISOString(),
+        endTime.toISOString(),
+        doctorId
+      );
+
+      console.log(`🔍 [GOOGLE CALENDAR] Google Calendar availability: ${isAvailable}`);
+      return isAvailable;
+    } catch (error) {
+      console.error('❌ [GOOGLE CALENDAR] Error checking Google Calendar availability:', error);
+      // If Google Calendar check fails, assume available to not block appointment creation
+      return true;
     }
   }
 
@@ -604,6 +739,45 @@ export class AppointmentService {
   }
 
   /**
+   * Get doctor availability for a date range
+   */
+  static async getDoctorAvailability(
+    doctorId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<AvailabilitySlot[]> {
+    try {
+      const doctor = await Doctor.findOne({ id: doctorId, isActive: true });
+      if (!doctor) {
+        throw new Error('Doctor not found');
+      }
+
+      const slots: AvailabilitySlot[] = [];
+      const currentDate = new Date(startDate);
+
+      while (currentDate <= endDate) {
+        const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'lowercase' });
+        const workingHours = doctor.practiceSettings.workingHours[dayOfWeek as keyof typeof doctor.practiceSettings.workingHours];
+
+        if (workingHours?.available) {
+          const daySlots = await this.getAvailableSlots(
+            doctorId,
+            currentDate,
+            doctor.practiceSettings.appointmentDuration
+          );
+          slots.push(...daySlots);
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      return slots;
+    } catch (error) {
+      throw new Error(`Failed to get doctor availability: ${error}`);
+    }
+  }
+
+  /**
    * Complete appointment
    */
   static async completeAppointment(
@@ -644,8 +818,6 @@ export class AppointmentService {
         action: 'appointment_completed',
         userId: doctorId,
         userType: 'doctor',
-        resourceId: appointmentId,
-        resourceType: 'appointment',
         details: { diagnosis: consultationDetails.diagnosis }
       });
 
