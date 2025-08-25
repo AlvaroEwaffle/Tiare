@@ -92,7 +92,6 @@ router.post('/', authenticateToken, async (req, res) => {
 
     // Create appointment
     const appointment = await AppointmentService.createAppointment({
-      doctorId,
       patientId,
       dateTime: appointmentDateTime,
       duration,

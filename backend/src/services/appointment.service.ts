@@ -4,7 +4,6 @@ import { GoogleCalendarService, GoogleCalendarEvent } from './googleCalendar.ser
 import { WhatsAppService } from './whatsapp.service';
 
 export interface CreateAppointmentData {
-  doctorId: string;
   patientId: string;
   dateTime: Date;
   duration: number;
@@ -59,22 +58,21 @@ export class AppointmentService {
    */
   static async createAppointment(appointmentData: CreateAppointmentData): Promise<AppointmentWithDetails> {
     try {
-      // Verify doctor and patient exist
-      const [doctor, patient] = await Promise.all([
-        Doctor.findOne({ id: appointmentData.doctorId, isActive: true }),
-        Patient.findOne({ id: appointmentData.patientId, doctorId: appointmentData.doctorId, isActive: true })
-      ]);
-
-      if (!doctor) {
-        throw new Error('Doctor not found');
-      }
+      // First, find the patient to get their doctorId
+      const patient = await Patient.findOne({ id: appointmentData.patientId, isActive: true });
       if (!patient) {
         throw new Error('Patient not found');
       }
 
+      // Then find the doctor using the patient's doctorId
+      const doctor = await Doctor.findOne({ id: patient.doctorId, isActive: true });
+      if (!doctor) {
+        throw new Error('Doctor not found for the patient');
+      }
+
       // Check if the time slot is available
       const isAvailable = await this.checkAvailability(
-        appointmentData.doctorId,
+        doctor.id,
         appointmentData.dateTime,
         appointmentData.duration
       );
@@ -86,6 +84,7 @@ export class AppointmentService {
       // Create appointment
       const appointment = new Appointment({
         id: uuidv4(),
+        doctorId: doctor.id, // Set doctorId from the patient's doctor
         ...appointmentData
       });
 

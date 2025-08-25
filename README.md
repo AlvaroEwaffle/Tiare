@@ -213,13 +213,19 @@ POST /api/appointments
 **Request Body:**
 ```json
 {
-  "patientId": "patient-id",
-  "date": "2025-01-28T10:00:00.000Z",
+  "patientId": "9f0ba5ac-b1f9-4203-af0c-2563cb36b56f",
+  "dateTime": "2025-08-28T10:00:00.000Z",
   "duration": 60,
-  "notes": "Primera consulta",
-  "type": "consultation"
+  "notes": "Primera consulta de evaluación",
+  "type": "remote"
 }
 ```
+
+**Note:** The `doctorId` is automatically obtained from the patient's record. The system will:
+1. Find the patient by `patientId`
+2. Get the associated `doctorId` from the patient
+3. Verify the patient belongs to the authenticated doctor
+4. Create the appointment with the correct doctor association
 
 #### **List Appointments (Protected)**
 ```http
@@ -234,6 +240,89 @@ Requires JWT authentication. Returns all appointments for the authenticated doct
 GET /api/search/phone/:phoneNumber
 ```
 Requires JWT authentication. Searches both doctors and patients by exact phone number match.
+
+**Headers:**
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Response for Doctor:**
+```json
+{
+  "message": "User found successfully",
+  "result": {
+    "type": "doctor",
+    "user": {
+      "id": "6be302ce-9eb0-4f04-8490-4bb7a6b2063e",
+      "name": "Dr. Álvaro Villena",
+      "phone": "+56920115198",
+      "email": "alvaro.villena@gmail.com",
+      "specialization": "Psicología Clínica",
+      "licenseNumber": "PSI-2024-001",
+      "address": "Monseñor Eyzaguirre 590, Providencia",
+      "isActive": true,
+      "createdAt": "2025-01-27T10:30:00.000Z",
+      "updatedAt": "2025-01-27T10:30:00.000Z"
+    }
+  }
+}
+```
+
+**Response for Patient:**
+```json
+{
+  "message": "User found successfully",
+  "result": {
+    "type": "patient",
+    "user": {
+      "id": "fda63c2a-c968-4aae-859e-07a5e7d5d17e",
+      "name": "Juan Pérez",
+      "phone": "+34612345678",
+      "email": "juan@example.com",
+      "doctorId": "6be302ce-9eb0-4f04-8490-4bb7a6b2063e",
+      "dateOfBirth": "1990-01-01",
+      "gender": "male",
+      "address": "Patient address",
+      "emergencyContact": {
+        "name": "María Pérez",
+        "phone": "+34612345679",
+        "relationship": "Mother"
+      },
+      "medicalHistory": [
+        {
+          "condition": "Anxiety",
+          "diagnosedDate": "2020-03-15",
+          "status": "Active"
+        }
+      ],
+      "communicationPreferences": {
+        "preferredMethod": "WhatsApp",
+        "language": "Spanish",
+        "timeZone": "Europe/Madrid"
+      },
+      "isActive": true,
+      "createdAt": "2025-01-27T10:30:00.000Z",
+      "updatedAt": "2025-01-27T10:30:00.000Z"
+    }
+  }
+}
+```
+
+**Error Response (User Not Found):**
+```json
+{
+  "message": "User not found",
+  "result": null
+}
+```
+
+**Error Response (Invalid Token):**
+```json
+{
+  "success": false,
+  "error": "Invalid token"
+}
+```
 
 #### **Search Users by Partial Phone (Protected)**
 ```http
