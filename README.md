@@ -156,6 +156,8 @@ Content-Type: application/json
 
 **Note:** Either `doctorId` OR `patientId` must be provided. If `patientId` is used, `doctorId` is required.
 
+**Legacy Endpoint:** The old `GET /api/appointments` endpoint is still available for backward compatibility but is deprecated. Use `POST /api/appointments/list` for new implementations.
+
 **Data Source Priority:**
 1. **Google Calendar (Primary Source)**: Real-time appointment data from connected Google Calendar
 2. **Local Database (Fallback)**: If Google Calendar is unavailable, falls back to local database
