@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Helmet } from 'react-helmet';
 
 // Import our new Tiare components
+import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Onboarding from "./pages/auth/Onboarding";
@@ -98,13 +99,14 @@ function App() {
           
           <Routes>
             {/* Public routes */}
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/onboarding" element={<Onboarding />} />
             
             {/* Protected routes */}
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="/app" element={<MainLayout />}>
+              <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="patients/create" element={<CreatePatient />} />
               <Route path="appointments" element={<AppointmentsPage />} />
@@ -122,7 +124,7 @@ function App() {
             <Route path="/calendar-auth-error" element={<CalendarAuthError />} />
             
             {/* Catch all */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </TooltipProvider>

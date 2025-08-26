@@ -52,51 +52,51 @@ const MainLayout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userData');
-    navigate('/login');
+    navigate('/');
   };
 
   const navigation = [
     {
       name: 'Dashboard',
-      href: '/dashboard',
+      href: '/app/dashboard',
       icon: Home,
-      current: location.pathname === '/dashboard'
+      current: location.pathname === '/app/dashboard'
     },
     {
       name: 'Citas',
-      href: '/appointments',
+      href: '/app/appointments',
       icon: Calendar,
-      current: location.pathname.startsWith('/appointments')
+      current: location.pathname.startsWith('/app/appointments')
     },
     {
       name: 'Pacientes',
-      href: '/patients',
+      href: '/app/patients',
       icon: Users,
-      current: location.pathname.startsWith('/patients')
+      current: location.pathname.startsWith('/app/patients')
     },
     {
       name: 'Facturación',
-      href: '/billing',
+      href: '/app/billing',
       icon: DollarSign,
-      current: location.pathname.startsWith('/billing')
+      current: location.pathname.startsWith('/app/billing')
     },
     {
       name: 'Reportes',
-      href: '/reportes',
+      href: '/app/reportes',
       icon: BarChart3,
-      current: location.pathname.startsWith('/reportes')
+      current: location.pathname.startsWith('/app/reportes')
     },
     {
       name: 'Mensajes',
-      href: '/mensajes',
+      href: '/app/mensajes',
       icon: MessageSquare,
-      current: location.pathname.startsWith('/mensajes')
+      current: location.pathname.startsWith('/app/mensajes')
     },
     {
       name: 'Configuración',
-      href: '/configuracion',
+      href: '/app/configuracion',
       icon: Settings,
-      current: location.pathname.startsWith('/configuracion')
+      current: location.pathname.startsWith('/app/configuracion')
     }
   ];
 

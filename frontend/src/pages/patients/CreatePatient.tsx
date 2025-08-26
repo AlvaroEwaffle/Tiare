@@ -316,7 +316,7 @@ const CreatePatient = () => {
 
             {/* Action Buttons */}
             <div className="flex space-x-3">
-              <Button variant="outline" onClick={() => navigate('/dashboard')} className="flex-1">
+              <Button variant="outline" onClick={() => navigate('/app/dashboard')} className="flex-1">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Volver al Dashboard
               </Button>
@@ -346,7 +346,7 @@ const CreatePatient = () => {
               <h1 className="text-3xl font-bold text-gray-900">Crear Nuevo Paciente</h1>
               <p className="text-gray-600">Agrega un nuevo paciente a tu práctica médica</p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+            <Button variant="outline" onClick={() => navigate('/app/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
             </Button>

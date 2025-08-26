@@ -136,7 +136,7 @@ const Onboarding = () => {
       }
 
       // Redirect to dashboard
-      navigate('/dashboard');
+              navigate('/app/dashboard');
     } catch (error) {
       console.error('Error updating practice settings:', error);
     } finally {

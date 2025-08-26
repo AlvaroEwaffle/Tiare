@@ -47,7 +47,7 @@ const Login = () => {
       localStorage.setItem('userData', JSON.stringify(data.doctor));
 
       // Redirect to dashboard
-      navigate('/dashboard');
+              navigate('/app/dashboard');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);

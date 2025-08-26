@@ -184,7 +184,7 @@ const CalendarAuthSuccess = () => {
           <div className="flex space-x-4">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/dashboard')}
+                              onClick={() => navigate('/app/dashboard')}
               className="flex-1"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
