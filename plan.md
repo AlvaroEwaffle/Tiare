@@ -591,4 +591,4 @@ https://wa.me/56996706983?text=Hola%20Alvaro%20Fidelizarte!%20%F0%9F%91%8B%20Soy
 
 Quitar console log del mongo db URI
 
-
+Get Available Slots by date range 

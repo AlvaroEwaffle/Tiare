@@ -134,18 +134,100 @@ POST /api/appointments
 GET /api/appointments
 ```
 
+**Headers:**
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
 **Query Parameters:**
-- `status`: Filter by status (scheduled, confirmed, cancelled, completed, no_show)
-- `patientId`: Filter by specific patient
-- `startDate` & `endDate`: Date range filtering (ISO 8601 format)
-- `page` & `limit`: Pagination support (default: page 1, limit 20)
+- `status` (optional): Filter by appointment status
+  - `scheduled` - Appointments that are scheduled but not confirmed
+  - `confirmed` - Appointments that are confirmed
+  - `cancelled` - Cancelled appointments
+  - `completed` - Completed appointments
+  - `no_show` - Appointments where patient didn't show up
+- `patientId` (optional): Filter appointments for a specific patient
+- `startDate` (optional): Filter appointments from this date (ISO 8601 format)
+- `endDate` (optional): Filter appointments until this date (ISO 8601 format)
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Number of appointments per page (default: 20, max: 100)
 
 **Example Requests:**
+
+**Get all appointments:**
+```http
+GET /api/appointments
+```
+
+**Filter by status:**
 ```http
 GET /api/appointments?status=confirmed
-GET /api/appointments?startDate=2025-08-25T00:00:00.000Z&endDate=2025-08-31T23:59:59.999Z
+```
+
+**Filter by patient:**
+```http
 GET /api/appointments?patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f
+```
+
+**Filter by date range:**
+```http
+GET /api/appointments?startDate=2025-08-25T00:00:00.000Z&endDate=2025-08-31T23:59:59.999Z
+```
+
+**Use pagination:**
+```http
 GET /api/appointments?page=1&limit=10
+```
+
+**Combine multiple filters:**
+```http
+GET /api/appointments?status=scheduled&patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f&page=1&limit=5
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "appointments": [
+      {
+        "id": "1de83346-70b9-44df-b274-402ab6e8efac0",
+        "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+        "patientId": "9f0ba5ac-b1f9-4203-af0c-2563cb36b56f",
+        "dateTime": "2025-08-28T10:00:00.000Z",
+        "duration": 60,
+        "type": "remote",
+        "status": "scheduled",
+        "notes": "Primera consulta de evaluación",
+        "googleEventId": "06krkdbo0un7g9si1odko14omo",
+        "reminders": [],
+        "patientName": "Alvaro Fidelizarte",
+        "patientPhone": "56996706983",
+        "doctorName": "Alvaro Villena",
+        "doctorSpecialization": "Coach Innovacion",
+        "createdAt": "2025-08-25T22:23:39.504Z",
+        "updatedAt": "2025-08-25T22:23:40.152Z"
+      }
+    ],
+    "totalCount": 1
+  }
+}
+```
+
+**Error Response (Unauthorized):**
+```json
+{
+  "success": false,
+  "error": "User ID not found in token"
+}
+```
+
+**Error Response (Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to fetch appointments"
+}
 ```
 
 #### **Get Specific Appointment**
@@ -170,6 +252,38 @@ GET /api/search/phone-partial/:partialPhone # Partial match
 ```http
 GET /api/doctors/calendar/appointments      # Get synchronized appointments
 GET /api/doctors/calendar/auth              # Initiate OAuth flow
+```
+
+## 🧪 Testing & Development
+
+### **CURL Testing Suite**
+The project includes a comprehensive `CURL.sh` script for testing all API endpoints:
+
+```bash
+# Make the script executable
+chmod +x CURL.sh
+
+# Run all tests (requires valid JWT token)
+./CURL.sh
+```
+
+**Features:**
+- **Authentication Tests**: Doctor registration, login, and token validation
+- **Patient Management**: Create and search patients
+- **Appointment Management**: Create, list, and filter appointments
+- **Search Functionality**: Phone number search (exact and partial)
+- **Calendar Integration**: Google Calendar OAuth and sync
+- **Error Handling**: Invalid tokens, missing parameters, edge cases
+
+**Example Test Output:**
+```bash
+🔐 Testing Authentication...
+✅ Doctor registered successfully
+✅ Login successful
+📋 Testing Patient Management...
+✅ Patient created successfully
+🔍 Testing Search Functionality...
+✅ User found successfully
 ```
 
 ## 🚀 Getting Started
