@@ -308,3 +308,26 @@ MERCADOPAGO_ACCESS_TOKEN=your-mercadopago-token
 **Estado General: 90% COMPLETADO** 🚀
 
 El proyecto está listo para producción y permite un desarrollo rápido de las funcionalidades restantes como facturación y notificaciones automáticas. 
+
+
+//To do
+Quitar todo lo de prueba, endpoints, mock data, etc.
+Mejorar logs en backend para que muestren las actividades que se estan haciendo
+
+Onboarding refinar:
+Quitar numero licencia
+Tipo de consulta, poder poner nombre
+
+Check veificacion  app en google (Conectar google calendar)
+
+Limpiar barra lateral, Dashboard, Citas, Pacientes. 
+
+Revisar manejo de numeros de telefono sin + ni espacios
+
+Al crear paciente no deberia pedir numero de telefono del doctor en la UI
+
+Revisar link a whatsapp, debe tener numero de Tiare
+https://wa.me/56996706983?text=Hola%20Alvaro%20Fidelizarte!%20%F0%9F%91%8B%20Soy%20el%20asistente%20virtual%20de%20Tiare.
+%20%C2%BFEn%20qu%C3%A9%20puedo%20ayudarte%20hoy%3F
+
+Revisar gestion de horas.

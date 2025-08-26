@@ -129,32 +129,32 @@ POST /api/appointments
 
 **Note:** The `doctorId` is automatically obtained from the patient's record.
 
-#### **List Appointments**
+#### **List Appointments (Protected)**
 ```http
-GET /api/appointments
+POST /api/appointments/list
 ```
+Requires JWT authentication. Lists appointments with filters sent in request body. Returns only essential fields: `patientName`, `dateTime`, `duration`, `type`, `status`.
 
 **Headers:**
 ```http
 Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
 ```
 
-**Required Query Parameters:**
-- **Either `doctorId` OR `patientId` must be provided:**
-  - `doctorId` - Get all appointments for a specific doctor
-  - `patientId` - Get appointments for a specific patient (requires `doctorId` also)
+**Request Body:**
+```json
+{
+  "doctorId": "doctor_uuid",
+  "patientId": "patient_uuid", // optional
+  "status": "scheduled", // optional
+  "startDate": "2025-08-25T00:00:00.000Z", // optional
+  "endDate": "2025-08-31T23:59:59.999Z", // optional
+  "page": 1, // optional, default: 1
+  "limit": 20 // optional, default: 20
+}
+```
 
-**Optional Query Parameters:**
-- `status` (optional): Filter by appointment status
-  - `scheduled` - Appointments that are scheduled but not confirmed
-  - `confirmed` - Appointments that are confirmed
-  - `cancelled` - Cancelled appointments
-  - `completed` - Completed appointments
-  - `no_show` - Appointments where patient didn't show up
-- `startDate` (optional): Filter appointments from this date (ISO 8601 format)
-- `endDate` (optional): Filter appointments until this date (ISO 8601 format)
-- `page` (optional): Page number for pagination (default: 1)
-- `limit` (optional): Number of appointments per page (default: 20, max: 100)
+**Note:** Either `doctorId` OR `patientId` must be provided. If `patientId` is used, `doctorId` is required.
 
 **Data Source Priority:**
 1. **Google Calendar (Primary Source)**: Real-time appointment data from connected Google Calendar
@@ -171,33 +171,73 @@ The endpoint now provides comprehensive logging for debugging:
 **Example Requests:**
 
 **Get all appointments for a doctor:**
-```http
-GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69
+```bash
+curl -X POST "https://tiare-production.up.railway.app/api/appointments/list" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69"
+  }'
 ```
 
 **Filter by status for a doctor:**
-```http
-GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&status=confirmed
+```bash
+curl -X POST "https://tiare-production.up.railway.app/api/appointments/list" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+    "status": "confirmed"
+  }'
 ```
 
 **Filter by patient (requires both doctorId and patientId):**
-```http
-GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f
+```bash
+curl -X POST "https://tiare-production.up.railway.app/api/appointments/list" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+    "patientId": "9f0ba5ac-b1f9-4203-af0c-2563cb36b56f"
+  }'
 ```
 
 **Filter by date range for a doctor:**
-```http
-GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&startDate=2025-08-25T00:00:00.000Z&endDate=2025-08-31T23:59:59.999Z
+```bash
+curl -X POST "https://tiare-production.up.railway.app/api/appointments/list" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+    "startDate": "2025-08-25T00:00:00.000Z",
+    "endDate": "2025-08-31T23:59:59.999Z"
+  }'
 ```
 
 **Use pagination for a doctor:**
-```http
-GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&page=1&limit=10
+```bash
+curl -X POST "https://tiare-production.up.railway.app/api/appointments/list" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+    "page": 1,
+    "limit": 10
+  }'
 ```
 
 **Combine multiple filters for a doctor:**
-```http
-GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&status=scheduled&patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f&page=1&limit=5
+```bash
+curl -X POST "https://tiare-production.up.railway.app/api/appointments/list" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+    "status": "scheduled",
+    "patientId": "9f0ba5ac-b1f9-4203-af0c-2563cb36b56f",
+    "page": 1,
+    "limit": 5
+  }'
 ```
 
 **Response:**
@@ -207,25 +247,16 @@ GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&status=schedu
   "data": {
     "appointments": [
       {
-        "id": "1de83346-70b9-44df-b274-402ab6e8efac0",
-        "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
-        "patientId": "9f0ba5ac-b1f9-4203-af0c-2563cb36b56f",
+        "patientName": "Alvaro Fidelizarte",
         "dateTime": "2025-08-28T10:00:00.000Z",
         "duration": 60,
         "type": "remote",
-        "status": "scheduled",
-        "notes": "Primera consulta de evaluación",
-        "googleEventId": "06krkdbo0un7g9si1odko14omo",
-        "reminders": [],
-        "patientName": "Alvaro Fidelizarte",
-        "patientPhone": "56996706983",
-        "doctorName": "Alvaro Villena",
-        "doctorSpecialization": "Coach Innovacion",
-        "createdAt": "2025-08-25T22:23:39.504Z",
-        "updatedAt": "2025-08-25T22:23:40.152Z"
+        "status": "scheduled"
       }
     ],
-    "totalCount": 1
+    "totalCount": 1,
+    "page": 1,
+    "totalPages": 1
   }
 }
 ```
@@ -414,7 +445,7 @@ curl -X GET "https://tiare-production.up.railway.app/api/search/phone/+569201151
 | `POST /api/patients/create` | ✅ Working | None | Create new patient |
 | `GET /api/patients` | ✅ Working | Required | List patients |
 | `POST /api/appointments` | ✅ Working | Required | Create appointment |
-| `GET /api/appointments` | ✅ Working | Required | List appointments with filtering & pagination |
+| `POST /api/appointments/list` | ✅ Working | Required | List appointments with filtering & pagination (essential fields only) |
 | `GET /api/appointments/:id` | ✅ Working | Required | Get specific appointment details |
 | `GET /api/search/phone/:phoneNumber` | ✅ Working | Required | Search by exact phone |
 | `GET /api/search/phone-partial/:partialPhone` | ✅ Working | Required | Search by partial phone |

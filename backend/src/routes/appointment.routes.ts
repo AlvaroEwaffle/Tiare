@@ -144,14 +144,15 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/appointments
- * Get all appointments for the authenticated doctor
+ * POST /api/appointments/list
+ * Get appointments with filters sent in request body
+ * Returns only essential fields: patientName, dateTime, duration, type, status
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.post('/list', authenticateToken, async (req, res) => {
   try {
-    const { status, patientId, doctorId, startDate, endDate, page, limit } = req.query;
+    const { status, patientId, doctorId, startDate, endDate, page, limit } = req.body;
 
-    console.log('🔍 [Appointment Route] Query parameters received:', {
+    console.log('🔍 [Appointment Route] POST /list - Request body received:', {
       doctorId,
       patientId,
       status,
@@ -170,7 +171,7 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log('🔧 [Get Appointments] Fetching appointments with filters:', {
+    console.log('🔧 [List Appointments] Fetching appointments with filters:', {
       doctorId,
       patientId,
       status,
@@ -209,18 +210,29 @@ router.get('/', authenticateToken, async (req, res) => {
       );
     }
 
-    console.log('✅ [Get Appointments] Found', appointments.appointments.length, 'appointments');
+    console.log('✅ [List Appointments] Found', appointments.appointments.length, 'appointments');
+
+    // Transform appointments to only include required fields
+    const simplifiedAppointments = appointments.appointments.map(appointment => ({
+      patientName: appointment.patientName || 'Unknown Patient',
+      dateTime: appointment.dateTime,
+      duration: appointment.duration,
+      type: appointment.type,
+      status: appointment.status
+    }));
 
     res.json({
       success: true,
       data: {
-        appointments: appointments.appointments,
-        totalCount: appointments.total
+        appointments: simplifiedAppointments,
+        totalCount: appointments.total,
+        page: appointments.page,
+        totalPages: appointments.totalPages
       }
     });
 
   } catch (error) {
-    console.error('❌ [Get Appointments] Error fetching appointments:', error);
+    console.error('❌ [List Appointments] Error fetching appointments:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch appointments'
