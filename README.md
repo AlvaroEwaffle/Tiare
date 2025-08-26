@@ -231,7 +231,150 @@ POST /api/appointments
 ```http
 GET /api/appointments
 ```
-Requires JWT authentication. Returns all appointments for the authenticated doctor.
+Requires JWT authentication. Returns all appointments for the authenticated doctor with filtering, pagination, and detailed information.
+
+**Headers:**
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Query Parameters:**
+- `status` (optional): Filter by appointment status
+  - `scheduled` - Appointments that are scheduled but not confirmed
+  - `confirmed` - Appointments that are confirmed
+  - `cancelled` - Cancelled appointments
+  - `completed` - Completed appointments
+  - `no_show` - Appointments where patient didn't show up
+- `patientId` (optional): Filter appointments for a specific patient
+- `startDate` (optional): Filter appointments from this date (ISO 8601 format)
+- `endDate` (optional): Filter appointments until this date (ISO 8601 format)
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Number of appointments per page (default: 20, max: 100)
+
+**Example Requests:**
+
+**Get all appointments:**
+```http
+GET /api/appointments
+```
+
+**Get confirmed appointments:**
+```http
+GET /api/appointments?status=confirmed
+```
+
+**Get appointments for a specific date range:**
+```http
+GET /api/appointments?startDate=2025-08-25T00:00:00.000Z&endDate=2025-08-31T23:59:59.999Z
+```
+
+**Get appointments for a specific patient:**
+```http
+GET /api/appointments?patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f
+```
+
+**Get appointments with pagination:**
+```http
+GET /api/appointments?page=1&limit=10
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "appointments": [
+      {
+        "id": "1de83346-70b9-44df-b274-402ab6e8efac0",
+        "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+        "patientId": "9f0ba5ac-b1f9-4203-af0c-2563cb36b56f",
+        "dateTime": "2025-08-28T10:00:00.000Z",
+        "duration": 60,
+        "type": "remote",
+        "status": "scheduled",
+        "notes": "Primera consulta de evaluación",
+        "googleEventId": "06krkdbo0un7g9si1odko14omo",
+        "reminders": [],
+        "patientName": "Alvaro Fidelizarte",
+        "patientPhone": "56996706983",
+        "doctorName": "Alvaro Villena",
+        "doctorSpecialization": "Coach Innovacion",
+        "createdAt": "2025-08-25T22:23:39.504Z",
+        "updatedAt": "2025-08-25T22:23:40.152Z"
+      }
+    ],
+    "totalCount": 1
+  }
+}
+```
+
+**Error Response (Unauthorized):**
+```json
+{
+  "success": false,
+  "error": "User ID not found in token"
+}
+```
+
+**Error Response (Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to fetch appointments"
+}
+```
+
+#### **Get Appointment by ID (Protected)**
+```http
+GET /api/appointments/:id
+```
+Requires JWT authentication. Returns detailed information about a specific appointment.
+
+**Headers:**
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Path Parameters:**
+- `id`: The appointment ID
+
+**Example Request:**
+```http
+GET /api/appointments/1de83346-70b9-44df-b274-402ab6e8efac0
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "1de83346-70b9-44df-b274-402ab6e8efac0",
+    "doctorId": "677b83ad-cc48-4327-ad6a-30f6e727b69",
+    "patientId": "9f0ba5ac-b1f9-4203-af0c-2563cb36b56f",
+    "dateTime": "2025-08-28T10:00:00.000Z",
+    "duration": 60,
+    "type": "remote",
+    "status": "scheduled",
+    "notes": "Primera consulta de evaluación",
+    "googleEventId": "06krkdbo0un7g9si1odko14omo",
+    "reminders": [],
+    "patientName": "Alvaro Fidelizarte",
+    "patientPhone": "56996706983",
+    "doctorName": "Alvaro Villena",
+    "doctorSpecialization": "Coach Innovacion",
+    "createdAt": "2025-08-25T22:23:39.504Z",
+    "updatedAt": "2025-08-25T22:23:40.152Z"
+  }
+}
+```
+
+**Error Response (Not Found):**
+```json
+{
+  "success": false,
+  "error": "Appointment not found"
+}
+```
 
 ### **Search & Discovery**
 
@@ -568,7 +711,8 @@ curl -X GET "https://tiare-production.up.railway.app/api/search/phone/+569201151
 | `POST /api/patients/create` | ✅ Working | None | Create new patient |
 | `GET /api/patients` | ✅ Working | Required | List patients |
 | `POST /api/appointments` | ✅ Working | Required | Create appointment |
-| `GET /api/appointments` | ✅ Working | Required | List appointments |
+| `GET /api/appointments` | ✅ Working | Required | List appointments with filtering & pagination |
+| `GET /api/appointments/:id` | ✅ Working | Required | Get specific appointment details |
 | `GET /api/search/phone/:phoneNumber` | ✅ Working | Required | Search by exact phone |
 | `GET /api/search/phone-partial/:partialPhone` | ✅ Working | Required | Search by partial phone |
 | `GET /api/doctors/calendar/appointments` | ✅ Working | Required | Calendar appointments |
