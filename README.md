@@ -156,6 +156,11 @@ Authorization: Bearer <JWT_TOKEN>
 - `page` (optional): Page number for pagination (default: 1)
 - `limit` (optional): Number of appointments per page (default: 20, max: 100)
 
+**Data Source Priority:**
+1. **Google Calendar (Primary Source)**: Real-time appointment data from connected Google Calendar
+2. **Local Database (Fallback)**: If Google Calendar is unavailable, falls back to local database
+3. **Automatic Sync**: Local database is kept updated for offline access and backup
+
 **Example Requests:**
 
 **Get all appointments for a doctor:**

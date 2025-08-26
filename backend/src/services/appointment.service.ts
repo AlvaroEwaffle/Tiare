@@ -269,7 +269,7 @@ export class AppointmentService {
   }
 
   /**
-   * Get appointments for a doctor
+   * Get appointments for a doctor with Google Calendar as source of truth
    */
   static async getAppointmentsByDoctor(
     doctorId: string,
@@ -286,6 +286,40 @@ export class AppointmentService {
     totalPages: number;
   }> {
     try {
+      console.log('🔍 [AppointmentService] Getting appointments for doctor:', doctorId, 'with Google Calendar as source of truth');
+      
+      // First, try to get appointments from Google Calendar (source of truth)
+      try {
+        const googleCalendarAppointments = await this.getAppointmentsFromGoogleCalendar(
+          doctorId,
+          startDate,
+          endDate,
+          status,
+          patientId
+        );
+        
+        if (googleCalendarAppointments && googleCalendarAppointments.length > 0) {
+          console.log('✅ [AppointmentService] Successfully retrieved', googleCalendarAppointments.length, 'appointments from Google Calendar');
+          
+          // Apply pagination to Google Calendar results
+          const startIndex = (page - 1) * limit;
+          const endIndex = startIndex + limit;
+          const paginatedAppointments = googleCalendarAppointments.slice(startIndex, endIndex);
+          
+          return {
+            appointments: paginatedAppointments,
+            total: googleCalendarAppointments.length,
+            page,
+            totalPages: Math.ceil(googleCalendarAppointments.length / limit)
+          };
+        }
+      } catch (googleError) {
+        console.warn('⚠️ [AppointmentService] Google Calendar unavailable, falling back to local database:', googleError);
+      }
+
+      // Fallback to local database if Google Calendar is unavailable
+      console.log('🔄 [AppointmentService] Falling back to local database for appointments');
+      
       const skip = (page - 1) * limit;
       const query: any = { doctorId };
 
@@ -321,6 +355,8 @@ export class AppointmentService {
         appointments.map(appointment => this.getAppointmentWithDetails(appointment.id))
       );
 
+      console.log('✅ [AppointmentService] Retrieved', appointmentsWithDetails.length, 'appointments from local database');
+
       return {
         appointments: appointmentsWithDetails,
         total,
@@ -329,6 +365,134 @@ export class AppointmentService {
       };
     } catch (error) {
       throw new Error(`Failed to get appointments: ${error}`);
+    }
+  }
+
+  /**
+   * Get appointments from Google Calendar as source of truth
+   */
+  private static async getAppointmentsFromGoogleCalendar(
+    doctorId: string,
+    startDate?: Date,
+    endDate?: Date,
+    status?: string,
+    patientId?: string
+  ): Promise<AppointmentWithDetails[]> {
+    try {
+      console.log('🔍 [AppointmentService] Fetching appointments from Google Calendar for doctor:', doctorId);
+      
+      // Get doctor's Google Calendar credentials
+      const doctor = await Doctor.findOne({ id: doctorId, isActive: true });
+      if (!doctor || !doctor.calendar?.oauth?.refreshToken) {
+        console.log('⚠️ [AppointmentService] Doctor not found or no Google Calendar connected:', doctorId);
+        return [];
+      }
+
+      // Set time range for Google Calendar query
+      const timeMin = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+      const timeMax = endDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
+
+      // Fetch events from Google Calendar
+      const googleEvents = await GoogleCalendarService.fetchExistingEvents(
+        doctor.calendar.oauth.refreshToken,
+        doctor.calendar.oauth.calendarId || 'primary',
+        timeMin,
+        timeMax,
+        doctorId
+      );
+
+      console.log('✅ [AppointmentService] Retrieved', googleEvents.length, 'events from Google Calendar');
+
+      // Convert Google Calendar events to AppointmentWithDetails format
+      const appointments: AppointmentWithDetails[] = [];
+      
+      for (const event of googleEvents) {
+        try {
+          // Try to find corresponding local appointment for additional details
+          const localAppointment = await Appointment.findOne({ 
+            googleEventId: event.id,
+            doctorId: doctorId
+          });
+
+          // Create appointment object with Google Calendar data
+          const appointment: AppointmentWithDetails = {
+            id: localAppointment?.id || event.id || uuidv4(),
+            doctorId: doctorId,
+            patientId: localAppointment?.patientId || 'unknown',
+            dateTime: new Date(event.start.dateTime),
+            duration: this.calculateDuration(event.start.dateTime, event.end.dateTime),
+            type: localAppointment?.type || 'remote',
+            status: localAppointment?.status || 'scheduled',
+            notes: localAppointment?.consultationDetails?.notes || event.description || '',
+            googleEventId: event.id || undefined,
+            reminders: localAppointment?.reminders || [],
+            patientName: localAppointment?.patientId ? await this.getPatientName(localAppointment.patientId) : 'Unknown Patient',
+            patientPhone: localAppointment?.patientId ? await this.getPatientPhone(localAppointment.patientId) : '',
+            doctorName: doctor.name || 'Unknown Doctor',
+            doctorSpecialization: doctor.specialization || '',
+            createdAt: localAppointment?.createdAt || new Date(),
+            updatedAt: new Date()
+          };
+
+          // Apply status filter if specified
+          if (status && appointment.status !== status) {
+            continue;
+          }
+
+          // Apply patient filter if specified
+          if (patientId && appointment.patientId !== patientId) {
+            continue;
+          }
+
+          appointments.push(appointment);
+        } catch (eventError) {
+          console.warn('⚠️ [AppointmentService] Error processing Google Calendar event:', event.id, eventError);
+          continue;
+        }
+      }
+
+      // Sort by dateTime
+      appointments.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+
+      console.log('✅ [AppointmentService] Successfully converted', googleEvents.length, 'Google Calendar events to appointments');
+      return appointments;
+
+    } catch (error) {
+      console.error('❌ [AppointmentService] Error fetching appointments from Google Calendar:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate duration in minutes between two date strings
+   */
+  private static calculateDuration(startDateTime: string, endDateTime: string): number {
+    const start = new Date(startDateTime);
+    const end = new Date(endDateTime);
+    return Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+  }
+
+  /**
+   * Get patient name by ID
+   */
+  private static async getPatientName(patientId: string): Promise<string> {
+    try {
+      const patient = await Patient.findOne({ id: patientId, isActive: true });
+      return patient?.name || 'Unknown Patient';
+    } catch (error) {
+      return 'Unknown Patient';
+    }
+  }
+
+  /**
+   * Get patient phone by ID
+   */
+  private static async getPatientPhone(patientId: string): Promise<string> {
+    try {
+      const patient = await Patient.findOne({ id: patientId, isActive: true });
+      return patient?.phone || '';
+    } catch (error) {
+      return '';
     }
   }
 
