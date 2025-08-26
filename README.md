@@ -161,6 +161,13 @@ Authorization: Bearer <JWT_TOKEN>
 2. **Local Database (Fallback)**: If Google Calendar is unavailable, falls back to local database
 3. **Automatic Sync**: Local database is kept updated for offline access and backup
 
+**Enhanced Logging:**
+The endpoint now provides comprehensive logging for debugging:
+- **Route Level**: Query parameters received and validation
+- **Service Level**: Doctor lookup results, Google Calendar connection status
+- **Fallback Logic**: When and why fallback to local database occurs
+- **Error Details**: Specific reasons for failures (doctor not found, no OAuth, etc.)
+
 **Example Requests:**
 
 **Get all appointments for a doctor:**

@@ -151,8 +151,19 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const { status, patientId, doctorId, startDate, endDate, page, limit } = req.query;
 
+    console.log('🔍 [Appointment Route] Query parameters received:', {
+      doctorId,
+      patientId,
+      status,
+      startDate,
+      endDate,
+      page,
+      limit
+    });
+
     // Validate that either doctorId or patientId is provided
     if (!doctorId && !patientId) {
+      console.error('❌ [Appointment Route] Missing required parameters: doctorId or patientId');
       return res.status(400).json({
         success: false,
         error: 'Either doctorId or patientId must be provided'

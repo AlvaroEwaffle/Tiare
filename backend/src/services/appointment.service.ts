@@ -338,6 +338,8 @@ export class AppointmentService {
       if (patientId) {
         query.patientId = patientId;
       }
+      
+      console.log('🔍 [AppointmentService] Local database query:', JSON.stringify(query, null, 2));
 
       const [appointments, total] = await Promise.all([
         Appointment.find(query)
@@ -383,8 +385,28 @@ export class AppointmentService {
       
       // Get doctor's Google Calendar credentials
       const doctor = await Doctor.findOne({ id: doctorId, isActive: true });
-      if (!doctor || !doctor.calendar?.oauth?.refreshToken) {
-        console.log('⚠️ [AppointmentService] Doctor not found or no Google Calendar connected:', doctorId);
+      console.log('🔍 [AppointmentService] Doctor lookup result:', {
+        found: !!doctor,
+        doctorId: doctorId,
+        doctorActive: doctor?.isActive,
+        hasCalendar: !!doctor?.calendar,
+        hasOAuth: !!doctor?.calendar?.oauth,
+        hasRefreshToken: !!doctor?.calendar?.oauth?.refreshToken,
+        calendarId: doctor?.calendar?.oauth?.calendarId
+      });
+      
+      if (!doctor) {
+        console.error('❌ [AppointmentService] Doctor not found with ID:', doctorId);
+        return [];
+      }
+      
+      if (!doctor.isActive) {
+        console.error('❌ [AppointmentService] Doctor is not active:', doctorId);
+        return [];
+      }
+      
+      if (!doctor.calendar?.oauth?.refreshToken) {
+        console.error('❌ [AppointmentService] Doctor has no Google Calendar OAuth refresh token:', doctorId);
         return [];
       }
 
@@ -393,6 +415,13 @@ export class AppointmentService {
       const timeMax = endDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
 
       // Fetch events from Google Calendar
+      console.log('🔍 [AppointmentService] Attempting to fetch events from Google Calendar with:', {
+        refreshToken: doctor.calendar.oauth.refreshToken ? '***present***' : 'missing',
+        calendarId: doctor.calendar.oauth.calendarId || 'primary',
+        timeMin: timeMin.toISOString(),
+        timeMax: timeMax.toISOString()
+      });
+      
       const googleEvents = await GoogleCalendarService.fetchExistingEvents(
         doctor.calendar.oauth.refreshToken,
         doctor.calendar.oauth.calendarId || 'primary',
@@ -402,6 +431,10 @@ export class AppointmentService {
       );
 
       console.log('✅ [AppointmentService] Retrieved', googleEvents.length, 'events from Google Calendar');
+      
+      if (googleEvents.length === 0) {
+        console.log('ℹ️ [AppointmentService] No events found in Google Calendar for the specified time range');
+      }
 
       // Convert Google Calendar events to AppointmentWithDetails format
       const appointments: AppointmentWithDetails[] = [];
