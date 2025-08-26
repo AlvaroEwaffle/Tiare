@@ -277,7 +277,8 @@ export class AppointmentService {
     endDate?: Date,
     status?: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
+    patientId?: string
   ): Promise<{
     appointments: AppointmentWithDetails[];
     total: number;
@@ -298,6 +299,10 @@ export class AppointmentService {
 
       if (status) {
         query.status = status;
+      }
+
+      if (patientId) {
+        query.patientId = patientId;
       }
 
       const [appointments, total] = await Promise.all([

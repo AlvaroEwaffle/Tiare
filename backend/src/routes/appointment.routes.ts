@@ -157,15 +157,26 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
 
-    const { status, patientId, startDate, endDate } = req.query;
+    const { status, patientId, startDate, endDate, page, limit } = req.query;
 
-    console.log('🔧 [Get Appointments] Fetching appointments for doctor:', doctorId);
+    console.log('🔧 [Get Appointments] Fetching appointments for doctor:', doctorId, 'with filters:', {
+      status,
+      patientId,
+      startDate,
+      endDate,
+      page,
+      limit
+    });
 
     // Get appointments
-    const appointments = await AppointmentService.getAppointmentsByDoctor(doctorId, 
+    const appointments = await AppointmentService.getAppointmentsByDoctor(
+      doctorId, 
       startDate ? new Date(startDate as string) : undefined,
       endDate ? new Date(endDate as string) : undefined,
-      status as string
+      status as string,
+      page ? parseInt(page as string) : 1,
+      limit ? parseInt(limit as string) : 20,
+      patientId as string
     );
 
     console.log('✅ [Get Appointments] Found', appointments.appointments.length, 'appointments');
