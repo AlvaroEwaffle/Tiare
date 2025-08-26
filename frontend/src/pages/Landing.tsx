@@ -38,11 +38,8 @@ const Landing = () => {
                         <img 
                             src="/logoprimario.png" 
                             alt="Tiare Logo" 
-                            className="w-20 h-20 md:w-40 md:h-40 object-contain mb-4 animate-fade-in" 
+                            className="w-20 h-20 md:w-20 md:h-20 object-contain mb-4 animate-fade-in" 
                         />
-                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800 text-center">
-                            Tiare
-                        </h2>
                     </div>
 
                     {/* Hero Section */}
@@ -63,7 +60,7 @@ const Landing = () => {
                         </p>
 
                         {/* CTA Button */}
-                        <div className="mb-8 animate-fade-in-delay">
+                        <div className="mb-8 animate-fade-in-delay flex justify-center">
                             <Button
                                 onClick={() => navigate('/login')}
                                 size="lg"
