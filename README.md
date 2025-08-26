@@ -139,14 +139,18 @@ GET /api/appointments
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-**Query Parameters:**
+**Required Query Parameters:**
+- **Either `doctorId` OR `patientId` must be provided:**
+  - `doctorId` - Get all appointments for a specific doctor
+  - `patientId` - Get appointments for a specific patient (requires `doctorId` also)
+
+**Optional Query Parameters:**
 - `status` (optional): Filter by appointment status
   - `scheduled` - Appointments that are scheduled but not confirmed
   - `confirmed` - Appointments that are confirmed
   - `cancelled` - Cancelled appointments
   - `completed` - Completed appointments
   - `no_show` - Appointments where patient didn't show up
-- `patientId` (optional): Filter appointments for a specific patient
 - `startDate` (optional): Filter appointments from this date (ISO 8601 format)
 - `endDate` (optional): Filter appointments until this date (ISO 8601 format)
 - `page` (optional): Page number for pagination (default: 1)
@@ -154,34 +158,34 @@ Authorization: Bearer <JWT_TOKEN>
 
 **Example Requests:**
 
-**Get all appointments:**
+**Get all appointments for a doctor:**
 ```http
-GET /api/appointments
+GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69
 ```
 
-**Filter by status:**
+**Filter by status for a doctor:**
 ```http
-GET /api/appointments?status=confirmed
+GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&status=confirmed
 ```
 
-**Filter by patient:**
+**Filter by patient (requires both doctorId and patientId):**
 ```http
-GET /api/appointments?patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f
+GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f
 ```
 
-**Filter by date range:**
+**Filter by date range for a doctor:**
 ```http
-GET /api/appointments?startDate=2025-08-25T00:00:00.000Z&endDate=2025-08-31T23:59:59.999Z
+GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&startDate=2025-08-25T00:00:00.000Z&endDate=2025-08-31T23:59:59.999Z
 ```
 
-**Use pagination:**
+**Use pagination for a doctor:**
 ```http
-GET /api/appointments?page=1&limit=10
+GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&page=1&limit=10
 ```
 
-**Combine multiple filters:**
+**Combine multiple filters for a doctor:**
 ```http
-GET /api/appointments?status=scheduled&patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f&page=1&limit=5
+GET /api/appointments?doctorId=677b83ad-cc48-4327-ad6a-30f6e727b69&status=scheduled&patientId=9f0ba5ac-b1f9-4203-af0c-2563cb36b56f&page=1&limit=5
 ```
 
 **Response:**
@@ -211,6 +215,22 @@ GET /api/appointments?status=scheduled&patientId=9f0ba5ac-b1f9-4203-af0c-2563cb3
     ],
     "totalCount": 1
   }
+}
+```
+
+**Error Response (Missing Parameters):**
+```json
+{
+  "success": false,
+  "error": "Either doctorId or patientId must be provided"
+}
+```
+
+**Error Response (Invalid Patient Filter):**
+```json
+{
+  "success": false,
+  "error": "doctorId is required when filtering by patientId"
 }
 ```
 

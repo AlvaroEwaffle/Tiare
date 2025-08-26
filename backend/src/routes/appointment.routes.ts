@@ -149,35 +149,54 @@ router.post('/', authenticateToken, async (req, res) => {
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const doctorId = req.user?.userId;
-    if (!doctorId) {
-      return res.status(401).json({
+    const { status, patientId, doctorId, startDate, endDate, page, limit } = req.query;
+
+    // Validate that either doctorId or patientId is provided
+    if (!doctorId && !patientId) {
+      return res.status(400).json({
         success: false,
-        error: 'User ID not found in token'
+        error: 'Either doctorId or patientId must be provided'
       });
     }
 
-    const { status, patientId, startDate, endDate, page, limit } = req.query;
-
-    console.log('🔧 [Get Appointments] Fetching appointments for doctor:', doctorId, 'with filters:', {
-      status,
+    console.log('🔧 [Get Appointments] Fetching appointments with filters:', {
+      doctorId,
       patientId,
+      status,
       startDate,
       endDate,
       page,
       limit
     });
 
-    // Get appointments
-    const appointments = await AppointmentService.getAppointmentsByDoctor(
-      doctorId, 
-      startDate ? new Date(startDate as string) : undefined,
-      endDate ? new Date(endDate as string) : undefined,
-      status as string,
-      page ? parseInt(page as string) : 1,
-      limit ? parseInt(limit as string) : 20,
-      patientId as string
-    );
+    let appointments;
+    
+    if (patientId) {
+      // If patientId is provided, get appointments for that specific patient
+      if (!doctorId) {
+        return res.status(400).json({
+          success: false,
+          error: 'doctorId is required when filtering by patientId'
+        });
+      }
+      appointments = await AppointmentService.getAppointmentsByPatient(
+        patientId as string,
+        doctorId as string,
+        page ? parseInt(page as string) : 1,
+        limit ? parseInt(limit as string) : 20
+      );
+    } else {
+      // If only doctorId is provided, get all appointments for that doctor
+      appointments = await AppointmentService.getAppointmentsByDoctor(
+        doctorId as string,
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined,
+        status as string,
+        page ? parseInt(page as string) : 1,
+        limit ? parseInt(limit as string) : 20,
+        patientId as string
+      );
+    }
 
     console.log('✅ [Get Appointments] Found', appointments.appointments.length, 'appointments');
 
