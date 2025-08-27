@@ -55,7 +55,7 @@ const appointmentSchema = new Schema<IAppointment>({
   id: { type: String, required: true, unique: true },
   doctorId: { type: String, required: true },
   patientId: { type: String, required: true },
-  dateTime: { type: Date, required: true }, // ALWAYS stored in UTC
+  dateTime: { type: Date, required: true, comment: 'ALWAYS stored in UTC' }, // ALWAYS stored in UTC
   duration: { type: Number, required: true },
   type: { type: String, enum: ['presential', 'remote', 'home'], required: true },
   timezone: { type: String, enum: ['America/Santiago', 'America/New_York', 'America/Los_Angeles', 'Europe/Madrid', 'Europe/London', 'UTC'] },
