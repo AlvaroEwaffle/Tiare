@@ -1,6 +1,8 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { AppointmentService } from '../services/appointment.service';
+import { Doctor } from '../models';
+import { TimezoneService } from '../services/timezone.service';
 
 const router = express.Router();
 
@@ -212,15 +214,28 @@ router.post('/list', authenticateToken, async (req, res) => {
 
     console.log('✅ [List Appointments] Found', appointments.appointments.length, 'appointments');
 
+    // Get doctor's timezone for date conversion
+    const doctor = await Doctor.findOne({ id: doctorId, isActive: true });
+    const doctorTimezone = doctor?.timezone || 'America/Santiago';
+    
+    console.log('🌍 [List Appointments] Converting dates to doctor timezone:', doctorTimezone);
+
     // Transform appointments to only include required fields
-    const simplifiedAppointments = appointments.appointments.map(appointment => ({
-      title: appointment.title || `Consulta con ${appointment.patientName || 'Paciente'}`,
-      patientName: appointment.patientName || 'Unknown Patient',
-      dateTime: appointment.dateTime,
-      duration: appointment.duration,
-      type: appointment.type,
-      status: appointment.status
-    }));
+    // IMPORTANT: Convert UTC dates to doctor's timezone for response
+    const simplifiedAppointments = appointments.appointments.map(appointment => {
+      // Convert UTC date to doctor's timezone
+      const localDateTime = TimezoneService.convertToUserTimezone(appointment.dateTime, doctorTimezone);
+      
+      return {
+        title: appointment.title || `Consulta con ${appointment.patientName || 'Paciente'}`,
+        patientName: appointment.patientName || 'Unknown Patient',
+        dateTime: localDateTime, // Return in doctor's timezone
+        duration: appointment.duration,
+        type: appointment.type,
+        status: appointment.status,
+        timezone: doctorTimezone // Include timezone info in response
+      };
+    });
 
     res.json({
       success: true,
