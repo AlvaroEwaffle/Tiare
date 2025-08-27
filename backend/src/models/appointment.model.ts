@@ -22,11 +22,12 @@ export interface IAppointment extends Document {
   id: string;
   doctorId: string;
   patientId: string;
-  dateTime: Date;
+  dateTime: Date; // ALWAYS stored in UTC
   duration: number; // minutes
   type: 'presential' | 'remote' | 'home';
   status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   title?: string; // Event title/name
+  timezone?: string; // Zona horaria del doctor al momento de crear la cita
   consultationDetails?: {
     type: 'presential' | 'remote' | 'home';
     duration: number;
@@ -54,9 +55,10 @@ const appointmentSchema = new Schema<IAppointment>({
   id: { type: String, required: true, unique: true },
   doctorId: { type: String, required: true },
   patientId: { type: String, required: true },
-  dateTime: { type: Date, required: true },
+  dateTime: { type: Date, required: true }, // ALWAYS stored in UTC
   duration: { type: Number, required: true },
   type: { type: String, enum: ['presential', 'remote', 'home'], required: true },
+  timezone: { type: String, enum: ['America/Santiago', 'America/New_York', 'America/Los_Angeles', 'Europe/Madrid', 'Europe/London', 'UTC'] },
   status: { 
     type: String, 
     enum: ['scheduled', 'confirmed', 'cancelled', 'completed', 'no_show'], 

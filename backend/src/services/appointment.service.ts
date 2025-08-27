@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Appointment, Patient, Doctor, EventLog } from '../models';
 import { GoogleCalendarService, GoogleCalendarEvent } from './googleCalendar.service';
 import { WhatsAppService } from './whatsapp.service';
+import { TimezoneService } from './timezone.service';
 
 export interface CreateAppointmentData {
   patientId: string;
@@ -28,7 +29,7 @@ export interface AppointmentWithDetails {
   id: string;
   doctorId: string;
   patientId: string;
-  dateTime: Date;
+  dateTime: Date; // ALWAYS in UTC
   duration: number;
   type: 'presential' | 'remote' | 'home';
   status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
@@ -36,6 +37,7 @@ export interface AppointmentWithDetails {
   notes?: string;
   consultationDetails?: any;
   googleEventId?: string;
+  timezone?: string; // Doctor's timezone when appointment was created
   reminders: any[];
   cancellationReason?: string;
   cancellationPenalty?: number;
@@ -114,13 +116,25 @@ export class AppointmentService {
       }
       console.log('✅ [AppointmentService] Time slot is available');
 
-      // Create appointment
-      console.log('➕ [AppointmentService] Creating appointment in database...');
+      // Create appointment - ALWAYS store dates in UTC
+      console.log('➕ [AppointmentService] Creating appointment in database (UTC)...');
+      
+      // Convert appointment dateTime to UTC if it's not already
+      const utcDateTime = TimezoneService.convertToUTC(appointmentData.dateTime, doctor.timezone || 'America/Santiago');
+      
+      console.log('🕐 [AppointmentService] Date conversion:', {
+        original: appointmentData.dateTime.toISOString(),
+        doctorTimezone: doctor.timezone || 'America/Santiago',
+        utc: utcDateTime.toISOString()
+      });
+
       const appointment = new Appointment({
         id: uuidv4(),
         doctorId: doctor.id, // Set doctorId from the patient's doctor
         title: `Consulta con ${patient.name}`, // Generate title for the appointment
-        ...appointmentData
+        timezone: doctor.timezone || 'America/Santiago', // Store doctor's timezone
+        ...appointmentData,
+        dateTime: utcDateTime // Override with UTC date
       });
 
       await appointment.save();
@@ -130,16 +144,17 @@ export class AppointmentService {
       if (doctor.calendar?.oauth?.refreshToken && doctor.calendar?.oauth?.calendarId) {
         console.log('📅 [AppointmentService] Doctor has Google Calendar connected, creating event...');
         try {
+          // Use UTC dates for Google Calendar (Google Calendar API expects UTC)
           const event: GoogleCalendarEvent = {
             summary: `Consulta con ${patient.name}`,
             description: `Tipo: ${appointmentData.type}\nNotas: ${appointmentData.notes || 'Sin notas'}`,
             start: {
-              dateTime: appointmentData.dateTime.toISOString(),
-              timeZone: 'America/Santiago'
+              dateTime: utcDateTime.toISOString(), // Use UTC date
+              timeZone: 'UTC' // Always use UTC for Google Calendar API
             },
             end: {
-              dateTime: new Date(appointmentData.dateTime.getTime() + appointmentData.duration * 60000).toISOString(),
-              timeZone: 'America/Santiago'
+              dateTime: new Date(utcDateTime.getTime() + appointmentData.duration * 60000).toISOString(), // Use UTC date
+              timeZone: 'UTC' // Always use UTC for Google Calendar API
             },
             reminders: {
               useDefault: false,
@@ -244,7 +259,7 @@ export class AppointmentService {
         throw new Error('Patient or doctor not found');
       }
 
-      return {
+      const result = {
         id: appointment.id,
         doctorId: appointment.doctorId,
         patientId: appointment.patientId,
@@ -255,6 +270,7 @@ export class AppointmentService {
         notes: appointment.consultationDetails?.notes,
         consultationDetails: appointment.consultationDetails,
         googleEventId: appointment.googleEventId,
+        timezone: appointment.timezone, // Include timezone from appointment
         reminders: appointment.reminders,
         cancellationReason: appointment.cancellationReason,
         cancellationPenalty: appointment.cancellationPenalty,
@@ -265,6 +281,15 @@ export class AppointmentService {
         createdAt: appointment.createdAt,
         updatedAt: appointment.updatedAt
       };
+
+      console.log('🕐 [AppointmentService] Appointment details retrieved:', {
+        id: result.id,
+        dateTime: result.dateTime.toISOString(),
+        timezone: result.timezone,
+        storageFormat: 'UTC'
+      });
+
+      return result;
     } catch (error) {
       throw new Error(`Failed to get appointment details: ${error}`);
     }
@@ -302,6 +327,7 @@ export class AppointmentService {
         
         if (googleCalendarAppointments && googleCalendarAppointments.length > 0) {
           console.log('✅ [AppointmentService] Successfully retrieved', googleCalendarAppointments.length, 'appointments from Google Calendar');
+          console.log('🕐 [AppointmentService] All dates from Google Calendar are in UTC');
           
           // Apply pagination to Google Calendar results
           const startIndex = (page - 1) * limit;
@@ -321,6 +347,7 @@ export class AppointmentService {
 
       // Fallback to local database if Google Calendar is unavailable
       console.log('🔄 [AppointmentService] Falling back to local database for appointments');
+      console.log('🕐 [AppointmentService] Local database dates are already in UTC');
       
       const skip = (page - 1) * limit;
       const query: any = { doctorId };
@@ -360,6 +387,12 @@ export class AppointmentService {
       );
 
       console.log('✅ [AppointmentService] Retrieved', appointmentsWithDetails.length, 'appointments from local database');
+      console.log('🌍 [AppointmentService] Database fallback summary:', {
+        totalAppointments: total,
+        returnedAppointments: appointmentsWithDetails.length,
+        storageFormat: 'UTC',
+        query: query
+      });
 
       return {
         appointments: appointmentsWithDetails,
@@ -387,6 +420,7 @@ export class AppointmentService {
       
       // Get doctor's Google Calendar credentials
       const doctor = await Doctor.findOne({ id: doctorId, isActive: true });
+      console.log('🌍 [AppointmentService] Doctor timezone:', doctor?.timezone || 'America/Santiago');
       console.log('🔍 [AppointmentService] Doctor lookup result:', {
         found: !!doctor,
         doctorId: doctorId,
@@ -442,7 +476,8 @@ export class AppointmentService {
           id: event.id,
           summary: event.summary,
           start: event.start.dateTime,
-          end: event.end.dateTime
+          end: event.end.dateTime,
+          timezone: event.start.timeZone || 'UTC'
         })));
       }
 
@@ -458,17 +493,19 @@ export class AppointmentService {
           });
 
           // Create appointment object with Google Calendar data
+          // Google Calendar events come with UTC dates, so we keep them as UTC
           const appointment: AppointmentWithDetails = {
             id: localAppointment?.id || event.id || uuidv4(),
             doctorId: doctorId,
             patientId: localAppointment?.patientId || 'unknown',
-            dateTime: new Date(event.start.dateTime),
+            dateTime: new Date(event.start.dateTime), // Keep as UTC from Google Calendar
             duration: this.calculateDuration(event.start.dateTime, event.end.dateTime),
             type: localAppointment?.type || 'remote',
             status: localAppointment?.status || 'scheduled',
             title: event.summary || localAppointment?.title || 'Consulta sin título', // PRIORIDAD: Google Calendar summary
             notes: localAppointment?.consultationDetails?.notes || event.description || '',
             googleEventId: event.id || undefined,
+            timezone: doctor.timezone || 'America/Santiago', // Include doctor's timezone
             reminders: localAppointment?.reminders || [],
             patientName: localAppointment?.patientId ? await this.getPatientName(localAppointment.patientId) : 'Unknown Patient',
             patientPhone: localAppointment?.patientId ? await this.getPatientPhone(localAppointment.patientId) : '',
@@ -483,7 +520,8 @@ export class AppointmentService {
             eventId: event.id,
             googleSummary: event.summary,
             localTitle: localAppointment?.title,
-            finalTitle: appointment.title
+            finalTitle: appointment.title,
+            timezone: appointment.timezone
           });
 
           // Apply status filter if specified
@@ -507,6 +545,13 @@ export class AppointmentService {
       appointments.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
       console.log('✅ [AppointmentService] Successfully converted', googleEvents.length, 'Google Calendar events to appointments');
+      console.log('🕐 [AppointmentService] All dates are stored in UTC, doctor timezone:', doctor.timezone || 'America/Santiago');
+      console.log('🌍 [AppointmentService] Timezone conversion summary:', {
+        totalEvents: googleEvents.length,
+        doctorTimezone: doctor.timezone || 'America/Santiago',
+        storageFormat: 'UTC',
+        conversionMethod: 'Google Calendar events kept as UTC'
+      });
       return appointments;
 
     } catch (error) {
@@ -581,6 +626,14 @@ export class AppointmentService {
         appointments.map(appointment => this.getAppointmentWithDetails(appointment.id))
       );
 
+      console.log('🕐 [AppointmentService] Retrieved', appointmentsWithDetails.length, 'appointments from database (all dates in UTC)');
+      console.log('🌍 [AppointmentService] Patient appointments summary:', {
+        patientId: patientId,
+        totalAppointments: total,
+        returnedAppointments: appointmentsWithDetails.length,
+        storageFormat: 'UTC'
+      });
+
       return {
         appointments: appointmentsWithDetails,
         total,
@@ -607,7 +660,13 @@ export class AppointmentService {
       }
 
       // Update fields
-      if (updateData.dateTime) appointment.dateTime = updateData.dateTime;
+      if (updateData.dateTime) {
+        // Convert to UTC if updating dateTime
+        const doctor = await Doctor.findOne({ id: doctorId });
+        const doctorTimezone = doctor?.timezone || 'America/Santiago';
+        appointment.dateTime = TimezoneService.convertToUTC(updateData.dateTime, doctorTimezone);
+        appointment.timezone = doctorTimezone; // Update timezone
+      }
       if (updateData.duration) appointment.duration = updateData.duration;
       if (updateData.type) appointment.type = updateData.type;
       if (updateData.status) appointment.status = updateData.status;
@@ -638,12 +697,12 @@ export class AppointmentService {
               summary: `Consulta con ${(await Patient.findOne({ id: appointment.patientId }))?.name}`,
               description: `Tipo: ${appointment.type}\nNotas: ${appointment.consultationDetails?.notes || 'Sin notas'}`,
               start: {
-                dateTime: appointment.dateTime.toISOString(),
-                timeZone: 'America/Santiago'
+                dateTime: appointment.dateTime.toISOString(), // Already in UTC
+                timeZone: 'UTC' // Always use UTC for Google Calendar API
               },
               end: {
-                dateTime: new Date(appointment.dateTime.getTime() + appointment.duration * 60000).toISOString(),
-                timeZone: 'America/Santiago'
+                dateTime: new Date(appointment.dateTime.getTime() + appointment.duration * 60000).toISOString(), // Already in UTC
+                timeZone: 'UTC' // Always use UTC for Google Calendar API
               }
             };
 
@@ -825,7 +884,12 @@ export class AppointmentService {
       }
 
       // Get day of week (0 = Sunday, 1 = Monday, etc.)
-      const dayOfWeek = dateTime.getDay();
+      // IMPORTANT: dateTime is in UTC, but working hours are in doctor's local timezone
+      // We need to convert UTC to doctor's timezone to get the correct day
+      const doctorTimezone = doctor.timezone || 'America/Santiago';
+      const localDateTime = TimezoneService.convertToUserTimezone(dateTime, doctorTimezone);
+      
+      const dayOfWeek = localDateTime.getDay();
       const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const dayName = dayNames[dayOfWeek];
 
@@ -840,19 +904,23 @@ export class AppointmentService {
       const [startHour, startMinute] = workingHours.start.split(':').map(Number);
       const [endHour, endMinute] = workingHours.end.split(':').map(Number);
 
-      const workStart = new Date(dateTime);
+      // Create working hours in doctor's local timezone
+      const workStart = new Date(localDateTime);
       workStart.setHours(startHour, startMinute, 0, 0);
       
-      const workEnd = new Date(dateTime);
+      const workEnd = new Date(localDateTime);
       workEnd.setHours(endHour, endMinute, 0, 0);
 
-      const appointmentEnd = new Date(dateTime.getTime() + duration * 60000);
+      // Check if appointment fits within working hours (using local time)
+      const appointmentEnd = new Date(localDateTime.getTime() + duration * 60000);
 
       // Check if appointment fits within working hours
-      const isWithinHours = dateTime >= workStart && appointmentEnd <= workEnd;
+      const isWithinHours = localDateTime >= workStart && appointmentEnd <= workEnd;
 
       console.log(`🔍 [WORKING HOURS] ${dayName}: ${workStart.toTimeString()} - ${workEnd.toTimeString()}`);
-      console.log(`🔍 [WORKING HOURS] Appointment: ${dateTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
+      console.log(`🔍 [WORKING HOURS] Appointment (local): ${localDateTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
+      console.log(`🔍 [WORKING HOURS] Appointment (UTC): ${dateTime.toTimeString()}`);
+      console.log(`🔍 [WORKING HOURS] Doctor timezone: ${doctorTimezone}`);
       console.log(`🔍 [WORKING HOURS] Within hours: ${isWithinHours}`);
 
       return isWithinHours;
@@ -917,6 +985,12 @@ export class AppointmentService {
 
       const endTime = new Date(dateTime.getTime() + duration * 60000);
       
+      console.log(`🔍 [GOOGLE CALENDAR] Checking availability in UTC:`, {
+        startTime: dateTime.toISOString(),
+        endTime: endTime.toISOString(),
+        doctorTimezone: doctor.timezone || 'America/Santiago'
+      });
+      
       // Use Google Calendar API to check for conflicts
       const isAvailable = await GoogleCalendarService.checkAvailability(
         doctor.calendar.oauth.refreshToken,
@@ -955,7 +1029,11 @@ export class AppointmentService {
       endOfDay.setHours(23, 59, 59, 999);
 
       // Get working hours for the day
-      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      // IMPORTANT: date is in UTC, but working hours are in doctor's local timezone
+      const doctorTimezone = doctor.timezone || 'America/Santiago';
+      const localDate = TimezoneService.convertToUserTimezone(date, doctorTimezone);
+      
+      const dayOfWeek = localDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       const workingHours = doctor.practiceSettings.workingHours[dayOfWeek];
 
       if (!workingHours?.available) {
@@ -966,10 +1044,15 @@ export class AppointmentService {
       const [startHour, startMinute] = workingHours.start.split(':').map(Number);
       const [endHour, endMinute] = workingHours.end.split(':').map(Number);
 
-      const workStart = new Date(date);
-      workStart.setHours(startHour, startMinute, 0, 0);
-      const workEnd = new Date(date);
-      workEnd.setHours(endHour, endMinute, 0, 0);
+      // Create working hours in doctor's local timezone, then convert to UTC for comparison
+      const localWorkStart = new Date(localDate);
+      localWorkStart.setHours(startHour, startMinute, 0, 0);
+      const localWorkEnd = new Date(localDate);
+      localWorkEnd.setHours(endHour, endMinute, 0, 0);
+
+      // Convert local working hours to UTC for database queries
+      const workStart = TimezoneService.convertToUTC(localWorkStart, doctorTimezone);
+      const workEnd = TimezoneService.convertToUTC(localWorkEnd, doctorTimezone);
 
       // Get existing appointments for the day
       const existingAppointments = await Appointment.find({

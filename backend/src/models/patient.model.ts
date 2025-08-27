@@ -34,6 +34,7 @@ export interface IPatient extends Document {
   name: string;
   phone: string;
   email?: string;
+  timezone?: string; // Zona horaria del paciente (opcional, hereda del doctor si no se especifica)
   dateOfBirth?: Date;
   gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   address?: string;
@@ -72,6 +73,7 @@ const patientSchema = new Schema<IPatient>({
   name: { type: String, required: true },
   phone: { type: String, required: true },
   email: { type: String },
+  timezone: { type: String, enum: ['America/Santiago', 'America/New_York', 'America/Los_Angeles', 'Europe/Madrid', 'Europe/London', 'UTC'] },
   dateOfBirth: { type: Date },
   gender: { type: String, enum: ['male', 'female', 'other', 'prefer_not_to_say'] },
   address: { type: String },

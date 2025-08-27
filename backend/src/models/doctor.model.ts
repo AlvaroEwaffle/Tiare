@@ -71,6 +71,7 @@ export interface IDoctor extends Document {
   licenseNumber: string;
   phone: string;
   address?: string;
+  timezone: string; // Zona horaria del doctor (default: America/Santiago)
   googleCalendarId?: string;
   googleRefreshToken?: string;
   practiceSettings: {
@@ -129,6 +130,7 @@ const doctorSchema = new Schema<IDoctor>({
   licenseNumber: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
   address: { type: String },
+  timezone: { type: String, default: 'America/Santiago', enum: ['America/Santiago', 'America/New_York', 'America/Los_Angeles', 'Europe/Madrid', 'Europe/London', 'UTC'] },
   googleCalendarId: { type: String },
   googleRefreshToken: { type: String },
   practiceSettings: { type: PracticeSettingsSchema, default: () => ({}) },

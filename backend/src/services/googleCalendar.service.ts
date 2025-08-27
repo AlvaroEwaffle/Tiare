@@ -472,11 +472,11 @@ export class GoogleCalendarService {
           description: event.description || undefined,
           start: {
             dateTime: event.start?.dateTime || event.start?.date || '',
-            timeZone: event.start?.timeZone || 'America/Santiago'
+            timeZone: event.start?.timeZone || 'UTC' // Default to UTC for consistency
           },
           end: {
             dateTime: event.end?.dateTime || event.end?.date || '',
-            timeZone: event.end?.timeZone || 'America/Santiago'
+            timeZone: event.end?.timeZone || 'UTC' // Default to UTC for consistency
           },
           attendees: event.attendees?.map(attendee => ({
             email: attendee.email || '',
