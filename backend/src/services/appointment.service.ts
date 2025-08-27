@@ -32,6 +32,7 @@ export interface AppointmentWithDetails {
   duration: number;
   type: 'presential' | 'remote' | 'home';
   status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+  title?: string; // Event title/name
   notes?: string;
   consultationDetails?: any;
   googleEventId?: string;
@@ -118,6 +119,7 @@ export class AppointmentService {
       const appointment = new Appointment({
         id: uuidv4(),
         doctorId: doctor.id, // Set doctorId from the patient's doctor
+        title: `Consulta con ${patient.name}`, // Generate title for the appointment
         ...appointmentData
       });
 

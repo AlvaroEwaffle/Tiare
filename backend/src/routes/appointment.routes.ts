@@ -214,6 +214,7 @@ router.post('/list', authenticateToken, async (req, res) => {
 
     // Transform appointments to only include required fields
     const simplifiedAppointments = appointments.appointments.map(appointment => ({
+      title: appointment.title || `Consulta con ${appointment.patientName || 'Paciente'}`,
       patientName: appointment.patientName || 'Unknown Patient',
       dateTime: appointment.dateTime,
       duration: appointment.duration,

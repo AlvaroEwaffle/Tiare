@@ -26,6 +26,7 @@ export interface IAppointment extends Document {
   duration: number; // minutes
   type: 'presential' | 'remote' | 'home';
   status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+  title?: string; // Event title/name
   consultationDetails?: {
     type: 'presential' | 'remote' | 'home';
     duration: number;
@@ -61,6 +62,7 @@ const appointmentSchema = new Schema<IAppointment>({
     enum: ['scheduled', 'confirmed', 'cancelled', 'completed', 'no_show'], 
     default: 'scheduled' 
   },
+  title: { type: String }, // Event title/name
   consultationDetails: { type: ConsultationDetailsSchema },
   googleEventId: { type: String },
   googleCalendarId: { type: String },

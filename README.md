@@ -133,7 +133,7 @@ POST /api/appointments
 ```http
 POST /api/appointments/list
 ```
-Requires JWT authentication. Lists appointments with filters sent in request body. Returns only essential fields: `patientName`, `dateTime`, `duration`, `type`, `status`.
+Requires JWT authentication. Lists appointments with filters sent in request body. Returns only essential fields: `title`, `patientName`, `dateTime`, `duration`, `type`, `status`.
 
 **Headers:**
 ```http
@@ -249,6 +249,7 @@ curl -X POST "https://tiare-production.up.railway.app/api/appointments/list" \
   "data": {
     "appointments": [
       {
+        "title": "Consulta con Alvaro Fidelizarte",
         "patientName": "Alvaro Fidelizarte",
         "dateTime": "2025-08-28T10:00:00.000Z",
         "duration": 60,
