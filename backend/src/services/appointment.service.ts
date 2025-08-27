@@ -436,6 +436,14 @@ export class AppointmentService {
       
       if (googleEvents.length === 0) {
         console.log('ℹ️ [AppointmentService] No events found in Google Calendar for the specified time range');
+      } else {
+        // Log first few events to debug
+        console.log('🔍 [AppointmentService] Sample Google Calendar events:', googleEvents.slice(0, 3).map(event => ({
+          id: event.id,
+          summary: event.summary,
+          start: event.start.dateTime,
+          end: event.end.dateTime
+        })));
       }
 
       // Convert Google Calendar events to AppointmentWithDetails format
@@ -458,6 +466,7 @@ export class AppointmentService {
             duration: this.calculateDuration(event.start.dateTime, event.end.dateTime),
             type: localAppointment?.type || 'remote',
             status: localAppointment?.status || 'scheduled',
+            title: event.summary || localAppointment?.title || 'Consulta sin título', // PRIORIDAD: Google Calendar summary
             notes: localAppointment?.consultationDetails?.notes || event.description || '',
             googleEventId: event.id || undefined,
             reminders: localAppointment?.reminders || [],
@@ -468,6 +477,14 @@ export class AppointmentService {
             createdAt: localAppointment?.createdAt || new Date(),
             updatedAt: new Date()
           };
+
+          // Log the title assignment for debugging
+          console.log('🏷️ [AppointmentService] Title assignment for event:', {
+            eventId: event.id,
+            googleSummary: event.summary,
+            localTitle: localAppointment?.title,
+            finalTitle: appointment.title
+          });
 
           // Apply status filter if specified
           if (status && appointment.status !== status) {
