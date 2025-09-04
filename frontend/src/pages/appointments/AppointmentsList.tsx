@@ -311,7 +311,7 @@ const AppointmentsList = () => {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => navigate('/appointments')}
+              onClick={() => navigate('/app/appointments')}
               className="w-full"
             >
               Conectar Calendario

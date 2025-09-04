@@ -41,7 +41,7 @@ const CalendarAuthError = () => {
     setRetrying(true);
     try {
       // Navigate back to appointments page to retry
-      navigate('/appointments');
+      navigate('/app/appointments');
     } catch (error) {
       console.error('Error retrying:', error);
       toast({

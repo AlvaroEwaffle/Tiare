@@ -192,7 +192,7 @@ const CalendarAuthSuccess = () => {
             </Button>
             
             <Button 
-              onClick={() => navigate('/appointments')}
+              onClick={() => navigate('/app/appointments')}
               className="flex-1"
             >
               Gestionar Citas

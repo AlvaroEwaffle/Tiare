@@ -137,7 +137,7 @@ const CreateAppointmentPage = () => {
         });
         
         // Redirect to appointments list
-        navigate('/appointments');
+        navigate('/app/appointments');
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error al crear la cita');
@@ -178,7 +178,7 @@ const CreateAppointmentPage = () => {
             <div className="flex items-center space-x-4 mb-4">
               <Button
                 variant="outline"
-                onClick={() => navigate('/appointments')}
+                onClick={() => navigate('/app/appointments')}
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -311,7 +311,7 @@ const CreateAppointmentPage = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => navigate('/appointments')}
+                    onClick={() => navigate('/app/appointments')}
                     disabled={loading}
                   >
                     Cancelar

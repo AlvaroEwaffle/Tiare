@@ -208,7 +208,7 @@ const Dashboard = () => {
               )}
             </div>
             <div className="flex space-x-3">
-              <Button variant="outline" onClick={() => navigate('/appointments')}>
+              <Button variant="outline" onClick={() => navigate('/app/appointments')}>
                 <Calendar className="w-4 h-4 mr-2" />
                 Ver agenda
               </Button>
@@ -409,7 +409,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="w-full mt-4"
-                  onClick={() => navigate('/appointments')}
+                  onClick={() => navigate('/app/appointments')}
                 >
                   Ver todas las citas
                 </Button>
@@ -501,7 +501,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-24 flex-col"
-                  onClick={() => navigate('/appointments')}
+                  onClick={() => navigate('/app/appointments')}
                 >
                   <Clock className="w-6 h-6 mb-2" />
                   <span className="text-sm">Ver Agenda</span>
