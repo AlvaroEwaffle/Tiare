@@ -82,14 +82,18 @@ mongoose.connect(MONGODB_URI)
     
     // Start server
     app.listen(PORT, () => {
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://tiare-production.up.railway.app' 
+        : `http://localhost:${PORT}`;
+      
       console.log('🏥 Tiare Healthcare API running on port', PORT);
-      console.log('📊 Health check: http://localhost:' + PORT + '/api/health');
-      console.log('👨‍⚕️ Doctor routes: http://localhost:' + PORT + '/api/doctors');
-      console.log('👶 Patient routes: http://localhost:' + PORT + '/api/patients');
-      console.log('🔍 Search routes: http://localhost:' + PORT + '/api/search');
-      console.log('📅 Calendar routes: http://localhost:' + PORT + '/api/doctors/calendar');
-      console.log('📅 Appointment routes: http://localhost:' + PORT + '/api/appointments');
-      console.log('📞 Doctor info endpoint: http://localhost:' + PORT + '/api/doctors/info/:id');
+      console.log('📊 Health check:', `${baseUrl}/api/health`);
+      console.log('👨‍⚕️ Doctor routes:', `${baseUrl}/api/doctors`);
+      console.log('👶 Patient routes:', `${baseUrl}/api/patients`);
+      console.log('🔍 Search routes:', `${baseUrl}/api/search`);
+      console.log('📅 Calendar routes:', `${baseUrl}/api/doctors/calendar`);
+      console.log('📅 Appointment routes:', `${baseUrl}/api/appointments`);
+      console.log('📞 Doctor info endpoint:', `${baseUrl}/api/doctors/info/:id`);
     });
   })
   .catch((error) => {

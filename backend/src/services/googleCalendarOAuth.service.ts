@@ -26,7 +26,7 @@ export class GoogleCalendarOAuthService {
     'https://www.googleapis.com/auth/calendar.events'
   ];
 
-  private static readonly REDIRECT_URI = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:3002/api/doctors/calendar/callback';
+  private static readonly REDIRECT_URI = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'https://tiare-production.up.railway.app/api/doctors/calendar/callback';
 
   /**
    * Genera la URL de autorización OAuth 2.0 para Google Calendar

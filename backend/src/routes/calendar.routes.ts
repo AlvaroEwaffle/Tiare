@@ -6,7 +6,7 @@ import { GoogleCalendarService } from '../services/googleCalendar.service';
 const router = express.Router();
 
 // Frontend URLs for OAuth callbacks
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://tiare-frontend.pages.dev';
 
 /**
  * POST /api/doctors/calendar/auth
