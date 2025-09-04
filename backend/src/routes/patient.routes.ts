@@ -71,8 +71,8 @@ router.get('/', authenticateToken, async (req, res) => {
         address: patient.address,
         emergencyContact: patient.emergencyContact,
         medicalHistory: patient.medicalHistory,
-        allergies: patient.medicalHistory?.allergies || '',
-        currentMedications: patient.medicalHistory?.currentMedications || '',
+        allergies: '', // TODO: Add allergies field to patient model if needed
+        currentMedications: '', // TODO: Add currentMedications field to patient model if needed
         doctorId: patient.doctorId,
         isActive: patient.isActive,
         createdAt: patient.createdAt,
