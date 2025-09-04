@@ -13,6 +13,7 @@ import Onboarding from "./pages/auth/Onboarding";
 import Dashboard from "./pages/dashboard/Dashboard";
 import BillingInterface from "./pages/billing/BillingInterface";
 import CreatePatient from "./pages/patients/CreatePatient";
+import PatientsList from "./pages/patients/PatientsList";
 import AppointmentsPage from "./pages/appointments/AppointmentsPage";
 import AppointmentsList from "./pages/appointments/AppointmentsList";
 import CreateAppointmentPage from "./pages/appointments/CreateAppointmentPage";
@@ -108,6 +109,7 @@ function App() {
             <Route path="/app" element={<MainLayout />}>
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="patients" element={<PatientsList />} />
               <Route path="patients/create" element={<CreatePatient />} />
               <Route path="appointments" element={<AppointmentsPage />} />
               <Route path="appointments/list" element={<AppointmentsList />} />
