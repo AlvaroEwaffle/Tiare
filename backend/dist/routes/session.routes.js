@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const session_controller_1 = require("../controllers/session.controller");
+const router = (0, express_1.Router)();
+router.post('/', session_controller_1.createSession);
+router.get('/:id', session_controller_1.getSessionById);
+router.post('/pago', session_controller_1.paySession);
+router.post('/webhook', session_controller_1.webhookPago);
+router.get('/:sessionId/premium', session_controller_1.getPremiumResult);
+router.get('/:sessionId/payment-status', session_controller_1.getPaymentStatus);
+router.post('/validate-promo', session_controller_1.validatePromoCode);
+router.post('/request-production', session_controller_1.requestCourseProduction);
+exports.default = router;

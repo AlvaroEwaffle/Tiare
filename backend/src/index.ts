@@ -13,6 +13,7 @@ import patientRoutes from './routes/patient.routes';
 import searchRoutes from './routes/search.routes';
 import calendarRoutes from './routes/calendar.routes';
 import appointmentRoutes from './routes/appointment.routes';
+import whatsappRoutes from './routes/whatsapp.routes';
 
 // Debug: Log environment variables
 console.log('🔧 [Environment Check] Loaded environment variables:', {
@@ -47,6 +48,7 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/doctors/calendar', calendarRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -94,6 +96,7 @@ mongoose.connect(MONGODB_URI)
       console.log('📅 Calendar routes:', `${baseUrl}/api/doctors/calendar`);
       console.log('📅 Appointment routes:', `${baseUrl}/api/appointments`);
       console.log('📞 Doctor info endpoint:', `${baseUrl}/api/doctors/info/:id`);
+      console.log('💬 WhatsApp webhook:', `${baseUrl}/api/whatsapp/webhook`);
     });
   })
   .catch((error) => {
