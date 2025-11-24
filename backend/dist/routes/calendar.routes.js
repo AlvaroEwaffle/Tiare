@@ -18,7 +18,7 @@ const googleCalendarOAuth_service_1 = __importDefault(require("../services/googl
 const googleCalendar_service_1 = require("../services/googleCalendar.service");
 const router = express_1.default.Router();
 // Frontend URLs for OAuth callbacks
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://tiare-frontend.pages.dev';
 /**
  * POST /api/doctors/calendar/auth
  * Genera la URL de autorización OAuth 2.0 para Google Calendar

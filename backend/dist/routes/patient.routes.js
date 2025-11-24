@@ -59,11 +59,20 @@ router.get('/', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 
             success: true,
             message: 'Patients retrieved successfully',
             patients: result.patients.map(patient => ({
+                _id: patient.id,
                 id: patient.id,
                 name: patient.name,
                 email: patient.email,
                 phone: patient.phone,
+                dateOfBirth: patient.dateOfBirth,
+                gender: patient.gender,
+                address: patient.address,
+                emergencyContact: patient.emergencyContact,
+                medicalHistory: patient.medicalHistory,
+                allergies: '', // TODO: Add allergies field to patient model if needed
+                currentMedications: '', // TODO: Add currentMedications field to patient model if needed
                 doctorId: patient.doctorId,
+                isActive: patient.isActive,
                 createdAt: patient.createdAt,
                 updatedAt: patient.updatedAt
             })),

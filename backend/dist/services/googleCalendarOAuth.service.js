@@ -323,5 +323,5 @@ GoogleCalendarOAuthService.SCOPES = [
     'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/calendar.events'
 ];
-GoogleCalendarOAuthService.REDIRECT_URI = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:3002/api/doctors/calendar/callback';
+GoogleCalendarOAuthService.REDIRECT_URI = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'https://tiare-production.up.railway.app/api/doctors/calendar/callback';
 exports.default = GoogleCalendarOAuthService;

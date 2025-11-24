@@ -15,6 +15,7 @@ const patient_routes_1 = __importDefault(require("./routes/patient.routes"));
 const search_routes_1 = __importDefault(require("./routes/search.routes"));
 const calendar_routes_1 = __importDefault(require("./routes/calendar.routes"));
 const appointment_routes_1 = __importDefault(require("./routes/appointment.routes"));
+const whatsapp_routes_1 = __importDefault(require("./routes/whatsapp.routes"));
 // Debug: Log environment variables
 console.log('🔧 [Environment Check] Loaded environment variables:', {
     MONGODB_URI: !!process.env.MONGODB_URI,
@@ -44,6 +45,7 @@ app.use('/api/patients', patient_routes_1.default);
 app.use('/api/search', search_routes_1.default);
 app.use('/api/doctors/calendar', calendar_routes_1.default);
 app.use('/api/appointments', appointment_routes_1.default);
+app.use('/api/whatsapp', whatsapp_routes_1.default);
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);
@@ -74,14 +76,18 @@ mongoose_1.default.connect(MONGODB_URI)
     console.log('🗄️  Database:', ((_a = mongoose_1.default.connection.db) === null || _a === void 0 ? void 0 : _a.databaseName) || 'Unknown');
     // Start server
     app.listen(PORT, () => {
+        const baseUrl = process.env.NODE_ENV === 'production'
+            ? 'https://tiare-production.up.railway.app'
+            : `http://localhost:${PORT}`;
         console.log('🏥 Tiare Healthcare API running on port', PORT);
-        console.log('📊 Health check: http://localhost:' + PORT + '/api/health');
-        console.log('👨‍⚕️ Doctor routes: http://localhost:' + PORT + '/api/doctors');
-        console.log('👶 Patient routes: http://localhost:' + PORT + '/api/patients');
-        console.log('🔍 Search routes: http://localhost:' + PORT + '/api/search');
-        console.log('📅 Calendar routes: http://localhost:' + PORT + '/api/doctors/calendar');
-        console.log('📅 Appointment routes: http://localhost:' + PORT + '/api/appointments');
-        console.log('📞 Doctor info endpoint: http://localhost:' + PORT + '/api/doctors/info/:id');
+        console.log('📊 Health check:', `${baseUrl}/api/health`);
+        console.log('👨‍⚕️ Doctor routes:', `${baseUrl}/api/doctors`);
+        console.log('👶 Patient routes:', `${baseUrl}/api/patients`);
+        console.log('🔍 Search routes:', `${baseUrl}/api/search`);
+        console.log('📅 Calendar routes:', `${baseUrl}/api/doctors/calendar`);
+        console.log('📅 Appointment routes:', `${baseUrl}/api/appointments`);
+        console.log('📞 Doctor info endpoint:', `${baseUrl}/api/doctors/info/:id`);
+        console.log('💬 WhatsApp webhook:', `${baseUrl}/api/whatsapp/webhook`);
     });
 })
     .catch((error) => {
